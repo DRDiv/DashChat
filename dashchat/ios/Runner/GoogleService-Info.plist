@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>449854355808-4h114ci2ikj5kq85q28bihdiu6gt5q45.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.449854355808-4h114ci2ikj5kq85q28bihdiu6gt5q45</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAij5EXfkbYxJjnBtDCUDaLKi4Qiahfw8M</string>
+	<key>GCM_SENDER_ID</key>
+	<string>449854355808</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.dashchat</string>
+	<key>PROJECT_ID</key>
+	<string>dashchat-e9def</string>
+	<key>STORAGE_BUCKET</key>
+	<string>dashchat-e9def.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:449854355808:ios:9738c77313c5eb6a1c8605</string>
+</dict>
+</plist>

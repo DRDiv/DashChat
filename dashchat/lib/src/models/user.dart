@@ -1,17 +1,66 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'dart:math';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class User {
   String UserName;
+  String DisplayName;
   String? Password;
-  String UserId;
-  String? RegisterToken;
-  User(this.UserName, Password, this.UserId) {
+
+  String email;
+  User(this.UserName, Password, this.email, this.DisplayName) {
     this.Password = _hashPass(Password);
-    RegisterToken = _generateRegistrationId();
   }
+  Future<void> Register() async {
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: Password!);
+
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('users');
+    usersCollection.add({
+      'name': UserName,
+      'displayName': DisplayName,
+      'Password': Password,
+      'email': email
+    });
+  }
+
+  void get(String username) async {
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('users');
+    Query usersQuery = usersCollection.where('name', isEqualTo: username);
+
+    // Execute the query and fetch documents
+    QuerySnapshot querySnapshot = await usersQuery.get();
+    for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
+      print(documentSnapshot);
+    }
+  }
+
+  Future<bool> userExist() async {
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('users');
+    QuerySnapshot usersQuery =
+        await usersCollection.where('name', isEqualTo: UserName).get();
+
+    if (usersQuery.docs.isNotEmpty) return true;
+    return false;
+  }
+
+  Future<bool> emailExist() async {
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('users');
+    QuerySnapshot usersQuery =
+        await usersCollection.where('email', isEqualTo: email).get();
+
+    if (usersQuery.docs.isNotEmpty) return true;
+    return false;
+  }
+
   String _hashPass(String pass) {
     var bytes = utf8.encode(pass);
     var digest = sha256.convert(bytes);
