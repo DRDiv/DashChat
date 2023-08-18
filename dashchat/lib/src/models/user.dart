@@ -29,16 +29,22 @@ class User {
     });
   }
 
-  void get(String username) async {
+  static Future<User> get(String username) async {
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('users');
     Query usersQuery = usersCollection.where('name', isEqualTo: username);
 
     // Execute the query and fetch documents
     QuerySnapshot querySnapshot = await usersQuery.get();
-    for (QueryDocumentSnapshot documentSnapshot in querySnapshot.docs) {
-      print(documentSnapshot);
+    if (querySnapshot.docs.isEmpty) {
+      return User("", "", "", "");
     }
+    User user = User(
+        querySnapshot.docs[0]['name'],
+        querySnapshot.docs[0]['Password'],
+        querySnapshot.docs[0]['email'],
+        querySnapshot.docs[0]['displayName']);
+    return user;
   }
 
   Future<bool> userExist() async {

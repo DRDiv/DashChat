@@ -75,6 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  bool booleanPassword = false;
   int numberLines1 = 2;
   int numberLines = 6;
   @override
@@ -148,8 +149,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onChanged: (value) {
                           setState(() {
                             numberLines = 1;
+                            booleanPassword = true;
                           });
                         },
+                        obscureText: booleanPassword,
                         controller: _password,
                         decoration: InputDecoration(
                           hintMaxLines: numberLines,
@@ -168,6 +171,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
                       child: TextFormField(
                         controller: _confirmPassword,
+                        obscureText: true,
+                        maxLines: 1,
                         decoration: InputDecoration(
                             errorText:
                                 passwordsMatch ? null : 'Password Do Not Match',
@@ -227,7 +232,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   return;
                 }
-
                 await user.Register();
 
                 setState(() {
