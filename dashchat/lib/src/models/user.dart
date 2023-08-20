@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'dart:core';
+import 'dart:io';
 
 import 'dart:math';
-
+import 'package:uuid/uuid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as path;
 
 class User {
   String UserName;
@@ -13,22 +17,48 @@ class User {
   String? Password;
 
   String email;
-  User(this.UserName, Password, this.email, this.DisplayName) {
+  FileImage? _profile;
+  String profileUrl = "";
+  String caption;
+  List followers = [];
+  List following = [];
+  Map<String, dynamic> docReturn() {
+    Map<String, dynamic> docs = {
+      'name': UserName,
+      'displayName': DisplayName,
+      'Password': Password,
+      'email': email,
+      'profileUrl': profileUrl,
+      'caption': caption,
+      'followers': followers,
+      'following': following
+    };
+    return docs;
+  }
+
+  User(this.UserName, Password, this.email, this.DisplayName, this._profile,
+      this.caption) {
     this.Password = _hashPass(Password);
   }
-  User.getUser(this.UserName, this.Password, this.email, this.DisplayName);
+  User.getUser(this.UserName, this.Password, this.email, this.DisplayName,
+      this.profileUrl, this.caption, this.followers, this.following);
   Future<void> Register() async {
+    if (_profile != null) {
+      File profileFile = _profile!.file;
+      Reference storageReference0 = FirebaseStorage.instance.ref();
+      String fileName = path.basename(profileFile.path);
+      Reference storageReference = storageReference0.child('avatars/$fileName');
+
+      TaskSnapshot taskSnapshot = await storageReference.putFile(profileFile);
+
+      profileUrl = await taskSnapshot.ref.getDownloadURL();
+    }
     UserCredential userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: Password!);
 
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('users');
-    usersCollection.add({
-      'name': UserName,
-      'displayName': DisplayName,
-      'Password': Password,
-      'email': email
-    });
+    usersCollection.add(docReturn());
   }
 
   static Future<User> get(String username) async {
@@ -36,16 +66,39 @@ class User {
         FirebaseFirestore.instance.collection('users');
     Query usersQuery = usersCollection.where('name', isEqualTo: username);
 
-    // Execute the query and fetch documents
     QuerySnapshot querySnapshot = await usersQuery.get();
     if (querySnapshot.docs.isEmpty) {
-      return User("", "", "", "");
+      return User("", "", "", "", null, "");
     }
     User user = User.getUser(
-        querySnapshot.docs[0]['name'],
-        querySnapshot.docs[0]['Password'],
-        querySnapshot.docs[0]['email'],
-        querySnapshot.docs[0]['displayName']);
+      querySnapshot.docs[0]['name'],
+      querySnapshot.docs[0]['Password'],
+      querySnapshot.docs[0]['email'],
+      querySnapshot.docs[0]['displayName'],
+      querySnapshot.docs[0]['profileUrl'],
+      querySnapshot.docs[0]['caption'],
+      querySnapshot.docs[0]['followers'],
+      querySnapshot.docs[0]['following'],
+    );
+    return user;
+  }
+
+  static Future<User> getCurrentUser() async {
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('userSession');
+
+    QuerySnapshot querySnapshot = await usersCollection.get();
+
+    User user = User.getUser(
+      querySnapshot.docs[0]['name'],
+      querySnapshot.docs[0]['Password'],
+      querySnapshot.docs[0]['email'],
+      querySnapshot.docs[0]['displayName'],
+      querySnapshot.docs[0]['profileUrl'],
+      querySnapshot.docs[0]['caption'],
+      querySnapshot.docs[0]['followers'],
+      querySnapshot.docs[0]['following'],
+    );
     return user;
   }
 
@@ -72,12 +125,10 @@ class User {
   Future<void> login() async {
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('userSession');
-    usersCollection.add({
-      'name': UserName,
-      'displayName': DisplayName,
-      'Password': Password,
-      'email': email
-    });
+    Map<String, dynamic> doc = docReturn();
+    var uuid = Uuid();
+    doc['tokenId'] = uuid.v4();
+    usersCollection.add(doc);
   }
 
   static Future<bool> userLoggedIn() async {
@@ -92,18 +143,5 @@ class User {
     var digest = sha256.convert(bytes);
 
     return digest.toString();
-  }
-
-  String _generateRegistrationId() {
-    final random = Random();
-    const int idLength = 32; // Length of the registration ID
-    const String chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-
-    String registrationId = '';
-    for (int i = 0; i < idLength; i++) {
-      registrationId += chars[random.nextInt(chars.length)];
-    }
-
-    return registrationId;
   }
 }

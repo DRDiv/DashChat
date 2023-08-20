@@ -25,6 +25,12 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  void _handleLogout() {
+    setState(() {
+      loggedIn = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +47,9 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.cyan),
         useMaterial3: true,
       ),
-      home: loggedIn ? const HomeScreen() : LoginPage(callback: _handleLogin),
+      home: loggedIn
+          ? HomeScreen(callback: _handleLogout)
+          : LoginPage(callback: _handleLogin),
     );
   }
 }

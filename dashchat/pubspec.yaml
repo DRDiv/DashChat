@@ -40,6 +40,10 @@ dependencies:
   firebase_core: ^2.15.1
   cloud_firestore: ^4.8.5
   firebase_auth: ^4.7.3
+  image_picker: ^1.0.2
+  firebase_storage: ^11.2.6
+  uuid: ^3.0.7
+  
 
 
 
@@ -68,6 +72,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - images/dash.png
+   
     - google_fonts/
   fonts:
     - family: Pacifico
@@ -85,6 +90,12 @@ flutter:
     - family: RockSalt
       fonts:
         - asset: google_fonts/RockSalt-Regular.ttf
+    - family: BerkshireSwash
+      fonts:
+        - asset: google_fonts/BerkshireSwash-Regular.ttf
+    - family: ShadowsIntoLight
+      fonts:
+        - asset: google_fonts/ShadowsIntoLightTwo-Regular.ttf
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
