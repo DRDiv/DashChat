@@ -46,26 +46,26 @@ class AppColorScheme {
 
   factory AppColorScheme.defaultScheme() {
     return AppColorScheme(
-      primaryColor: Color(0xFF1976D2), // Deep Blue
-      accentColor: Color(0xFF00ACC1), // Cyan
-      backgroundColor: Color(0xFFE0E0E0), // Light Gray
-      chatBubbleUserBackground: Color(0xFFB3E5FC), // Light Blue
-      chatBubbleOtherUserBackground: Color(0xFFFFFFFF), // White
-      textColorPrimary: Color(0xFF333333), // Dark Gray
-      textColorSecondary: Color(0xFF666666), // Mid Gray
-      textColorAccent: Color(0xFF00ACC1), // Cyan
-      textColorLight: Color(0xFFFFFFFF), // White
-      buttonColor: Color(0xFF00ACC1), // Cyan
-      buttonText: Color(0xFFFFFFFF), // White
-      errorColor: Color(0xFFF44336), // Red
-      warningColor: Color(0xFFFFC107), // Amber
-      successColor: Color(0xFF4CAF50), // Green
-      infoColor: Color(0xFF2196F3), // Blue
-      dividerColor: Color(0xFFBDBDBD), // Light Gray
-      primaryColorVariant1: Color(0xFF9C27B0), // Purple
-      primaryColorVariant2: Color(0xFFE91E63), // Pink
-      primaryColorVariant3: Color(0xFF2196F3), // Blue
-      primaryColorVariant4: Color(0xFFFF5722), // Deep Orange
+      primaryColor: const Color(0xFF1976D2), // Deep Blue
+      accentColor: const Color(0xFF00ACC1), // Cyan
+      backgroundColor: const Color(0xFFE0E0E0), // Light Gray
+      chatBubbleUserBackground: const Color(0xFFB3E5FC), // Light Blue
+      chatBubbleOtherUserBackground: const Color(0xFFFFFFFF), // White
+      textColorPrimary: const Color(0xFF333333), // Dark Gray
+      textColorSecondary: const Color(0xFF666666), // Mid Gray
+      textColorAccent: const Color(0xFF00ACC1), // Cyan
+      textColorLight: const Color(0xFFFFFFFF), // White
+      buttonColor: const Color(0xFF00ACC1), // Cyan
+      buttonText: const Color(0xFFFFFFFF), // White
+      errorColor: const Color(0xFFF44336), // Red
+      warningColor: const Color(0xFFFFC107), // Amber
+      successColor: const Color(0xFF4CAF50), // Green
+      infoColor: const Color(0xFF2196F3), // Blue
+      dividerColor: const Color(0xFFBDBDBD), // Light Gray
+      primaryColorVariant1: const Color(0xFF9C27B0), // Purple
+      primaryColorVariant2: const Color(0xFFE91E63), // Pink
+      primaryColorVariant3: const Color(0xFF2196F3), // Blue
+      primaryColorVariant4: const Color(0xFFFF5722), // Deep Orange
     );
   }
 }

@@ -1,24 +1,28 @@
+import 'package:dashchat/src/app.dart';
 import 'package:dashchat/src/models/colors.dart';
 import 'package:dashchat/src/models/fonts.dart';
 import 'package:dashchat/src/models/user.dart';
-import 'package:dashchat/src/screens/home.dart';
 import 'package:dashchat/src/screens/register.dart';
 
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final VoidCallback callback;
+
+  LoginPage({required this.callback});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  AppColorScheme colorScheme = new AppColorScheme.defaultScheme();
-  AppFonts fonts = new AppFonts.defaultFonts();
-  TextEditingController _username = TextEditingController();
-  TextEditingController _password = TextEditingController();
+  AppColorScheme colorScheme = AppColorScheme.defaultScheme();
+  AppFonts fonts = AppFonts.defaultFonts();
+  final TextEditingController _username = TextEditingController();
+  final TextEditingController _password = TextEditingController();
   bool userExists = true;
+  bool passwordMatch = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,6 +64,7 @@ class _LoginPageState extends State<LoginPage> {
                       obscureText: true,
                       controller: _password,
                       decoration: InputDecoration(
+                          errorText: passwordMatch ? null : 'Password mismatch',
                           hintText: 'Password',
                           hintStyle: TextStyle(
                               color: colorScheme.primaryColor,
@@ -75,6 +80,7 @@ class _LoginPageState extends State<LoginPage> {
                 backgroundColor: colorScheme.buttonColor),
             onPressed: () async {
               User user = await User.get(_username.text);
+              User currentUser = User("", _password.text, "", "");
               if (user.UserName == "") {
                 setState(() {
                   userExists = false;
@@ -83,8 +89,19 @@ class _LoginPageState extends State<LoginPage> {
                 _password.clear();
                 return;
               }
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => HomeScreen()));
+              setState(() {
+                userExists = true;
+              });
+
+              if (currentUser.Password != user.Password) {
+                setState(() {
+                  passwordMatch = false;
+                });
+                return;
+              }
+
+              widget.callback();
+              user.login();
             },
             child: Text(
               "Login",
@@ -95,8 +112,10 @@ class _LoginPageState extends State<LoginPage> {
           ),
           TextButton(
               onPressed: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (context) => RegisterScreen()));
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const RegisterScreen()));
               },
               child: Text("Not Registered? Click Here!!",
                   style: TextStyle(

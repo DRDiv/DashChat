@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:dashchat/src/models/colors.dart';
 import 'package:dashchat/src/models/fonts.dart';
@@ -14,13 +13,13 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  AppColorScheme colorScheme = new AppColorScheme.defaultScheme();
-  AppFonts fonts = new AppFonts.defaultFonts();
-  TextEditingController _username = TextEditingController();
-  TextEditingController _password = TextEditingController();
-  TextEditingController _confirmPassword = TextEditingController();
-  TextEditingController _email = TextEditingController();
-  TextEditingController _displayName = TextEditingController();
+  AppColorScheme colorScheme = AppColorScheme.defaultScheme();
+  AppFonts fonts = AppFonts.defaultFonts();
+  final TextEditingController _username = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+  final TextEditingController _confirmPassword = TextEditingController();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _displayName = TextEditingController();
   bool passwordsMatch = true;
   bool usernameMatch = true;
   bool emailMatch = true;

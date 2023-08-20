@@ -1,10 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
+import 'dart:core';
+
 import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:crypto/crypto.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class User {
   String UserName;
@@ -15,6 +16,7 @@ class User {
   User(this.UserName, Password, this.email, this.DisplayName) {
     this.Password = _hashPass(Password);
   }
+  User.getUser(this.UserName, this.Password, this.email, this.DisplayName);
   Future<void> Register() async {
     UserCredential userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: Password!);
@@ -39,7 +41,7 @@ class User {
     if (querySnapshot.docs.isEmpty) {
       return User("", "", "", "");
     }
-    User user = User(
+    User user = User.getUser(
         querySnapshot.docs[0]['name'],
         querySnapshot.docs[0]['Password'],
         querySnapshot.docs[0]['email'],
@@ -65,6 +67,24 @@ class User {
 
     if (usersQuery.docs.isNotEmpty) return true;
     return false;
+  }
+
+  Future<void> login() async {
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('userSession');
+    usersCollection.add({
+      'name': UserName,
+      'displayName': DisplayName,
+      'Password': Password,
+      'email': email
+    });
+  }
+
+  static Future<bool> userLoggedIn() async {
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('userSession');
+    QuerySnapshot usersQuery = await usersCollection.get();
+    return usersQuery.docs.isNotEmpty;
   }
 
   String _hashPass(String pass) {
