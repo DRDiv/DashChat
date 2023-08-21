@@ -89,16 +89,7 @@ class User {
 
     QuerySnapshot querySnapshot = await usersCollection.get();
 
-    User user = User.getUser(
-      querySnapshot.docs[0]['name'],
-      querySnapshot.docs[0]['Password'],
-      querySnapshot.docs[0]['email'],
-      querySnapshot.docs[0]['displayName'],
-      querySnapshot.docs[0]['profileUrl'],
-      querySnapshot.docs[0]['caption'],
-      querySnapshot.docs[0]['followers'],
-      querySnapshot.docs[0]['following'],
-    );
+    User user = await User.get(querySnapshot.docs[0]['name']);
     return user;
   }
 
@@ -125,10 +116,20 @@ class User {
   Future<void> login() async {
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('userSession');
-    Map<String, dynamic> doc = docReturn();
+    Map<String, dynamic> docs = {'name': UserName};
     var uuid = Uuid();
-    doc['tokenId'] = uuid.v4();
-    usersCollection.add(doc);
+    docs['tokenId'] = uuid.v4();
+    usersCollection.add(docs);
+  }
+
+  static Future<void> logout() async {
+    final CollectionReference collectionRef =
+        FirebaseFirestore.instance.collection('userSession');
+
+    QuerySnapshot querySnapshot = await collectionRef.get();
+    for (QueryDocumentSnapshot docSnapshot in querySnapshot.docs) {
+      await docSnapshot.reference.delete();
+    }
   }
 
   static Future<bool> userLoggedIn() async {
@@ -136,6 +137,44 @@ class User {
         FirebaseFirestore.instance.collection('userSession');
     QuerySnapshot usersQuery = await usersCollection.get();
     return usersQuery.docs.isNotEmpty;
+  }
+
+  Future<void> addFollowing(String user) async {
+    QuerySnapshot<Map<String, dynamic>> userList = await FirebaseFirestore
+        .instance
+        .collection('users')
+        .where('name', isEqualTo: UserName)
+        .get();
+
+    DocumentSnapshot userDocSnapshot = userList.docs.first;
+    String userDocId = userDocSnapshot.id;
+
+    following.add(user);
+
+    DocumentReference userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(userDocId);
+    await userDocRef.update({
+      'following': following,
+    });
+  }
+
+  Future<void> addFollower(String user) async {
+    QuerySnapshot<Map<String, dynamic>> userList = await FirebaseFirestore
+        .instance
+        .collection('users')
+        .where('name', isEqualTo: UserName)
+        .get();
+
+    DocumentSnapshot userDocSnapshot = userList.docs.first;
+    String userDocId = userDocSnapshot.id;
+
+    followers.add(user);
+
+    DocumentReference userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(userDocId);
+    await userDocRef.update({
+      'followers': followers,
+    });
   }
 
   String _hashPass(String pass) {

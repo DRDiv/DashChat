@@ -24,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _users = userTemp;
     });
+    _searchText = '';
   }
 
   AppColorScheme colorScheme = AppColorScheme.defaultScheme();
@@ -122,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                             FutureBuilder(
                                               future: _updateUsers(_searchText),
                                               builder: (context, snapshot) {
-                                                print(_users);
                                                 if (snapshot.connectionState ==
                                                     ConnectionState.waiting) {
                                                   return Padding(
@@ -151,6 +151,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                                       itemBuilder:
                                                           (context, index) {
                                                         return ListTile(
+                                                          onTap: () {
+                                                            Navigator.push(
+                                                                context,
+                                                                MaterialPageRoute(
+                                                                    builder: (context) =>
+                                                                        userProfile(
+                                                                            userFound:
+                                                                                _users[index]['name'])));
+                                                          },
                                                           leading: CircleAvatar(
                                                             backgroundImage:
                                                                 NetworkImage(_users[
@@ -194,11 +203,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                             icon: const Icon(Icons.search)),
                         IconButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              User currentUser = await User.getCurrentUser();
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => userProfile()));
+                                      builder: (context) => userProfile(
+                                          userFound: currentUser.DisplayName)));
                             },
                             icon: Icon(Icons.person_4)),
                         IconButton(
@@ -258,6 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                 .Password ==
                                                             user.Password) {
                                                           passwordsMatch = true;
+                                                          await User.logout();
                                                           Navigator.pop(
                                                               context);
                                                           widget.callback();
