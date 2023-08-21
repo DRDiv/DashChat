@@ -22,6 +22,7 @@ class User {
   String caption;
   List followers = [];
   List following = [];
+  List posts = [];
   Map<String, dynamic> docReturn() {
     Map<String, dynamic> docs = {
       'name': UserName,
@@ -31,7 +32,8 @@ class User {
       'profileUrl': profileUrl,
       'caption': caption,
       'followers': followers,
-      'following': following
+      'following': following,
+      'posts': posts,
     };
     return docs;
   }
@@ -40,8 +42,16 @@ class User {
       this.caption) {
     this.Password = _hashPass(Password);
   }
-  User.getUser(this.UserName, this.Password, this.email, this.DisplayName,
-      this.profileUrl, this.caption, this.followers, this.following);
+  User.getUser(
+      this.UserName,
+      this.Password,
+      this.email,
+      this.DisplayName,
+      this.profileUrl,
+      this.caption,
+      this.followers,
+      this.following,
+      this.posts);
   Future<void> Register() async {
     if (_profile != null) {
       File profileFile = _profile!.file;
@@ -79,6 +89,7 @@ class User {
       querySnapshot.docs[0]['caption'],
       querySnapshot.docs[0]['followers'],
       querySnapshot.docs[0]['following'],
+      querySnapshot.docs[0]['posts'],
     );
     return user;
   }
@@ -89,7 +100,7 @@ class User {
 
     QuerySnapshot querySnapshot = await usersCollection.get();
 
-    User user = await User.get(querySnapshot.docs[0]['name']);
+    User user = await User.get(querySnapshot.docs[0]['name'] as String);
     return user;
   }
 
@@ -174,6 +185,25 @@ class User {
         FirebaseFirestore.instance.collection('users').doc(userDocId);
     await userDocRef.update({
       'followers': followers,
+    });
+  }
+
+  Future<void> addPost(String postUrl) async {
+    QuerySnapshot<Map<String, dynamic>> userList = await FirebaseFirestore
+        .instance
+        .collection('users')
+        .where('name', isEqualTo: UserName)
+        .get();
+
+    DocumentSnapshot userDocSnapshot = userList.docs.first;
+    String userDocId = userDocSnapshot.id;
+
+    posts.add(postUrl);
+
+    DocumentReference userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(userDocId);
+    await userDocRef.update({
+      'posts': posts,
     });
   }
 

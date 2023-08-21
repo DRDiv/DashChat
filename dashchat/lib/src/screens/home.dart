@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:dashchat/src/models/colors.dart';
 import 'package:dashchat/src/models/fonts.dart';
+import 'package:dashchat/src/models/posts.dart';
 import 'package:dashchat/src/models/user.dart';
 import 'package:dashchat/src/screens/userProfile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../database/commands.dart';
 
@@ -25,6 +29,54 @@ class _HomeScreenState extends State<HomeScreen> {
       _users = userTemp;
     });
     _searchText = '';
+  }
+
+  FileImage? _image;
+  bool _isLoading = false;
+  Future _pickImageGallery(ImageSource source) async {
+    setState(() {
+      _isLoading = true;
+    });
+    final pickedImage =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (pickedImage != null) {
+      setState(() {
+        _image = FileImage(File(pickedImage.path));
+      });
+    }
+    Post post = Post();
+    post.addPost(_image!);
+    User user = await User.getCurrentUser();
+    user.addPost(post.postUrl!);
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context);
+  }
+
+  Future _pickImageCamera(ImageSource source) async {
+    setState(() {
+      _isLoading = true;
+    });
+    final pickedImage =
+        await ImagePicker().pickImage(source: ImageSource.camera);
+
+    if (pickedImage != null) {
+      setState(() {
+        _image = FileImage(File(pickedImage.path));
+      });
+    }
+    Post post = Post();
+    await post.addPost(_image!);
+    User user = await User.getCurrentUser();
+    user.addPost(post.postUrl!);
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.pop(context);
   }
 
   AppColorScheme colorScheme = AppColorScheme.defaultScheme();
@@ -202,6 +254,44 @@ class _HomeScreenState extends State<HomeScreen> {
                               );
                             },
                             icon: const Icon(Icons.search)),
+                        IconButton(
+                            onPressed: () {
+                              showDialog(
+                                barrierDismissible: !_isLoading,
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                      content: Container(
+                                    height: screenHeight * 0.15,
+                                    width: screenWidth * 0.8,
+                                    child: _isLoading
+                                        ? Center(
+                                            child: CircularProgressIndicator())
+                                        : Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              ElevatedButton(
+                                                onPressed: () =>
+                                                    _pickImageGallery(
+                                                        ImageSource.gallery),
+                                                child: const Text(
+                                                    'Pick Photo from Gallery'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () =>
+                                                    _pickImageCamera(
+                                                        ImageSource.camera),
+                                                child: const Text(
+                                                    'Pick Photo from Camera'),
+                                              ),
+                                            ],
+                                          ),
+                                  ));
+                                },
+                              );
+                            },
+                            icon: Icon(Icons.add_photo_alternate)),
                         IconButton(
                             onPressed: () async {
                               User currentUser = await User.getCurrentUser();
