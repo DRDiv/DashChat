@@ -94,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(
               width: screenWidth,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(2.0),
@@ -109,12 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Row(
                     children: [
-                      IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.people,
-                            color: colorScheme.chatBubbleOtherUserBackground,
-                          )),
                       IconButton(
                           onPressed: () {},
                           icon: Icon(
