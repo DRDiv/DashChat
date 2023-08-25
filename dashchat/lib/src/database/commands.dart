@@ -9,7 +9,7 @@ class SearchQuery {
     }
 
     User current = await User.getCurrentUser();
-    String usernameCurrent = current.UserName;
+    String usernameCurrent = current.userName;
 
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('users');
@@ -17,8 +17,9 @@ class SearchQuery {
 
     List<Map<String, dynamic>> matchingUsers = usersQuery.docs
         .where((doc) =>
-            doc['name'] != usernameCurrent &&
-            RegExp(like, caseSensitive: false).hasMatch(doc['name'] as String))
+            doc['userName'] != usernameCurrent &&
+            RegExp(like, caseSensitive: false)
+                .hasMatch(doc['userName'] as String))
         .map((doc) => doc.data() as Map<String, dynamic>)
         .toList();
 

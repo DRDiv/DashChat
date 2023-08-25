@@ -3,6 +3,7 @@ import 'package:dashchat/src/models/colors.dart';
 import 'package:dashchat/src/models/fonts.dart';
 import 'package:dashchat/src/models/posts.dart';
 import 'package:dashchat/src/models/user.dart';
+import 'package:dashchat/src/screens/messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -25,6 +26,7 @@ class _userProfileState extends State<userProfile> {
   bool isLoading = true;
   bool postLoading = true;
   bool liked = false;
+  Map userTokenMap = {};
   final GlobalKey _alertDialogKey = GlobalKey();
   int? count;
   List<Post> postsUrlList = [];
@@ -35,16 +37,40 @@ class _userProfileState extends State<userProfile> {
     _fetchPost();
   }
 
+  String format(Timestamp timestamp) {
+    DateTime dateTime = timestamp.toDate();
+    DateTime now = DateTime.now();
+
+    if (now.difference(dateTime).inDays < 1) {
+      if (now.difference(dateTime).inHours < 1) {
+        if (now.difference(dateTime).inMinutes < 1) {
+          return 'Just now';
+        } else {
+          return '${now.difference(dateTime).inMinutes} mins ago';
+        }
+      } else {
+        return '${now.difference(dateTime).inHours} hrs ago';
+      }
+    } else {
+      if (now.year == dateTime.year) {
+        return DateFormat('MMM d').format(dateTime);
+      } else {
+        return DateFormat('MMM d, yyyy').format(dateTime);
+      }
+    }
+  }
+
   Future<void> _fetchPost() async {
     User loggedUser = await User.getCurrentUser();
-    User currentUser = await User.get(widget.userFound);
+    User currentUser = await User.getByUsername(widget.userFound);
     setState(() {
       user = currentUser;
-      following = (loggedUser.UserName == currentUser.UserName) ||
-          (currentUser.followers.contains(loggedUser.UserName));
+      following = (loggedUser.userToken == currentUser.userToken) ||
+          (currentUser.followers.contains(loggedUser.userToken));
       count = user!.following.length;
       postLoading = true;
     });
+
     for (var postUrl in currentUser.posts) {
       Post post = await Post.getPost(postUrl);
       setState(() {
@@ -58,13 +84,13 @@ class _userProfileState extends State<userProfile> {
 
   Future<void> _addCommentToPost(int postIndex, String comment) async {
     Timestamp time = Timestamp.now();
-    print(loggedUser!.UserName);
-    await Post.addComment(
-        postsUrlList[postIndex].postUrl!, comment, loggedUser!.UserName, time);
+
+    await Post.addComment(postsUrlList[postIndex].postUrl!, comment,
+        loggedUser!.userToken!, time);
 
     setState(() {
       postsUrlList[postIndex].comments.add({
-        'username': loggedUser!.UserName,
+        'userToken': loggedUser!.userToken,
         'comments': comment,
         'time': time,
       });
@@ -73,11 +99,13 @@ class _userProfileState extends State<userProfile> {
 
   Future<void> _fetchCurrentUser() async {
     User loggedUser = await User.getCurrentUser();
-    User currentUser = await User.get(widget.userFound);
+    User currentUser = await User.getByUsername(widget.userFound);
+    Map userTokenMap = await User.getUsernameMap();
     setState(() {
       user = currentUser;
       this.loggedUser = loggedUser;
       isLoading = false;
+      this.userTokenMap = userTokenMap;
     });
   }
 
@@ -89,15 +117,32 @@ class _userProfileState extends State<userProfile> {
     return Scaffold(
       appBar: AppBar(backgroundColor: (colorScheme.accentColor), actions: [
         SizedBox(
-            width: screenWidth,
+            width: screenWidth * 0.7,
             child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   Text('DashChat',
                       style: TextStyle(
                           fontSize: 30,
                           color: (colorScheme.textColorLight),
                           fontFamily: fonts.headingFont)),
+                  !isLoading &&
+                          following! &&
+                          (loggedUser!.userToken != user!.userToken)
+                      ? IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => messageScreen(
+                                        loggedUser: loggedUser!,
+                                        displayUser: user!)));
+                          },
+                          icon: Icon(
+                            Icons.send_sharp,
+                            color: colorScheme.chatBubbleOtherUserBackground,
+                          ))
+                      : SizedBox(),
                 ]))
       ]),
       body: isLoading
@@ -116,7 +161,7 @@ class _userProfileState extends State<userProfile> {
                           child: CircleAvatar(
                               radius: 60.0,
                               backgroundColor: colorScheme.backgroundColor,
-                              child: user!.profileUrl == null
+                              child: user!.profileUrl == ""
                                   ? const Icon(Icons.person, size: 100)
                                   : ClipOval(
                                       child: Image.network(
@@ -127,14 +172,14 @@ class _userProfileState extends State<userProfile> {
                                     ))),
                         ),
                         Text(
-                          user!.UserName,
+                          user!.userName,
                           style: TextStyle(
                               color: colorScheme.textColorPrimary,
                               fontFamily: fonts.accentFont,
                               fontSize: 40),
                         ),
                         Text(
-                          user!.DisplayName,
+                          user!.displayName,
                           style: TextStyle(
                               color: colorScheme.textColorSecondary,
                               fontFamily: fonts.bodyFont,
@@ -191,6 +236,35 @@ class _userProfileState extends State<userProfile> {
                             ],
                           ),
                         ),
+                        (loggedUser!.userToken != user!.userToken) && following!
+                            ? Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+                                    await loggedUser!
+                                        .removeFollowing(user!.userToken!);
+                                    await user!
+                                        .removeFollower(loggedUser!.userToken!);
+                                    setState(() {
+                                      following = false;
+                                      count = user!.following.length;
+                                      isLoading = false;
+                                    });
+                                  },
+                                  child: Text(
+                                    "Following",
+                                    style: TextStyle(
+                                        color: colorScheme.accentColor),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: colorScheme
+                                          .chatBubbleOtherUserBackground),
+                                ),
+                              )
+                            : SizedBox(),
                         following!
                             ? SizedBox(
                                 width: 0.8 * screenWidth,
@@ -200,194 +274,259 @@ class _userProfileState extends State<userProfile> {
                                       )
                                     : ListView.builder(
                                         shrinkWrap: true,
-                                        itemCount: postsUrlList.length,
-                                        itemBuilder: (context, index) {
-                                          return Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color:
-                                                      colorScheme.buttonColor,
-                                                  width: 1.0,
-                                                ),
-                                              ),
-                                              child: ListTile(
-                                                title: Image.network(
-                                                  postsUrlList[index].postUrl!,
-                                                  height: 300,
-                                                ),
-                                                subtitle: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    IconButton(
-                                                      icon: Icon(
-                                                        Icons
-                                                            .heart_broken_rounded,
-                                                        color: postsUrlList[
-                                                                    index]
-                                                                .likes
-                                                                .contains(
-                                                                    loggedUser!
-                                                                        .UserName)
-                                                            ? colorScheme
-                                                                .primaryColorVariant2
-                                                            : Colors.grey,
-                                                      ),
-                                                      onPressed: () async {
-                                                        bool likedCurrent =
-                                                            postsUrlList[index]
-                                                                .likes
-                                                                .contains(
-                                                                    loggedUser!
-                                                                        .UserName);
-                                                        await likedCurrent
-                                                            ? Post.unlikePost(
-                                                                postsUrlList[
-                                                                        index]
-                                                                    .postUrl!,
-                                                                loggedUser!
-                                                                    .UserName)
-                                                            : Post.likePost(
-                                                                postsUrlList[
-                                                                        index]
-                                                                    .postUrl!,
-                                                                loggedUser!
-                                                                    .UserName);
-                                                        setState(() {
-                                                          likedCurrent
-                                                              ? postsUrlList[
-                                                                      index]
-                                                                  .likes
-                                                                  .remove(loggedUser!
-                                                                      .UserName)
-                                                              : postsUrlList[
-                                                                      index]
-                                                                  .likes
-                                                                  .add(loggedUser!
-                                                                      .UserName);
-                                                        });
-                                                      },
-                                                    ),
-                                                    TextButton(
-                                                        onPressed: () {
-                                                          showDialog(
-                                                            context: context,
-                                                            builder: (context) {
-                                                              return AlertDialog(
-                                                                title: Center(
-                                                                  child: Text(
-                                                                    "Comments",
-                                                                    style: TextStyle(
-                                                                        color: colorScheme
-                                                                            .accentColor,
-                                                                        fontFamily:
-                                                                            fonts.headingFont),
-                                                                  ),
-                                                                ),
-                                                                content:
-                                                                    Container(
-                                                                  width: double
-                                                                      .maxFinite,
-                                                                  child: Column(
-                                                                    mainAxisSize:
-                                                                        MainAxisSize
-                                                                            .min,
-                                                                    children: [
-                                                                      Expanded(
-                                                                        child: ListView
-                                                                            .builder(
-                                                                          itemCount: postsUrlList[index]
-                                                                              .comments
-                                                                              .length,
-                                                                          itemBuilder:
-                                                                              (context, commentIndex) {
-                                                                            final comment =
-                                                                                postsUrlList[index].comments[commentIndex];
-                                                                            print(comment);
-                                                                            Timestamp
-                                                                                time =
-                                                                                comment['time'];
-                                                                            DateTime
-                                                                                dateTime =
-                                                                                time.toDate(); // Replace with your DateTime object
-                                                                            String
-                                                                                formattedDateTime =
-                                                                                DateFormat('HH:mm:ss dd-MM-yy').format(dateTime);
+                                        itemCount:
+                                            (postsUrlList.length / 2).ceil(),
+                                        itemBuilder: (context, rowIndex) {
+                                          int startIndex = rowIndex * 2;
+                                          int endIndex = startIndex + 2;
+                                          endIndex =
+                                              endIndex > postsUrlList.length
+                                                  ? postsUrlList.length
+                                                  : endIndex;
 
-                                                                            return ListTile(
-                                                                              title: Text(
-                                                                                comment['comments'],
-                                                                                style: TextStyle(fontFamily: fonts.primaryFont, fontSize: 20),
-                                                                              ),
-                                                                              subtitle: Text(
-                                                                                comment['username'] + "\n" + formattedDateTime.toString(),
-                                                                                style: TextStyle(fontFamily: fonts.secondaryFont, fontSize: 10),
-                                                                              ),
-                                                                            );
-                                                                          },
+                                          return Row(
+                                            children: List.generate(
+                                                endIndex - startIndex, (index) {
+                                              return Expanded(
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8.0),
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      border: Border.all(
+                                                        color: colorScheme
+                                                            .buttonColor,
+                                                        width: 1.0,
+                                                      ),
+                                                    ),
+                                                    child: ListTile(
+                                                      title: GestureDetector(
+                                                        onTap: () {
+                                                          showDialog(
+                                                              context: context,
+                                                              builder:
+                                                                  (context) {
+                                                                return AlertDialog(
+                                                                    title: SizedBox(
+                                                                        width: screenWidth * 0.9,
+                                                                        child: Image.network(
+                                                                          postsUrlList[startIndex + index]
+                                                                              .postUrl!,
+                                                                          width:
+                                                                              screenWidth * 0.8,
+                                                                        )));
+                                                              });
+                                                        },
+                                                        child: Image.network(
+                                                          postsUrlList[
+                                                                  startIndex +
+                                                                      index]
+                                                              .postUrl!,
+                                                          height: 100,
+                                                        ),
+                                                      ),
+                                                      subtitle: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              IconButton(
+                                                                icon: Icon(
+                                                                  Icons
+                                                                      .favorite,
+                                                                  color: postsUrlList[startIndex +
+                                                                              index]
+                                                                          .likes
+                                                                          .contains(loggedUser!
+                                                                              .userToken!)
+                                                                      ? colorScheme
+                                                                          .primaryColorVariant2
+                                                                      : Colors
+                                                                          .grey,
+                                                                ),
+                                                                onPressed:
+                                                                    () async {
+                                                                  bool likedCurrent = postsUrlList[
+                                                                          startIndex +
+                                                                              index]
+                                                                      .likes
+                                                                      .contains(
+                                                                          loggedUser!
+                                                                              .userToken);
+                                                                  await likedCurrent
+                                                                      ? Post.unlikePost(
+                                                                          postsUrlList[startIndex + index]
+                                                                              .postUrl!,
+                                                                          loggedUser!
+                                                                              .userToken!)
+                                                                      : Post.likePost(
+                                                                          postsUrlList[startIndex + index]
+                                                                              .postUrl!,
+                                                                          loggedUser!
+                                                                              .userToken!);
+                                                                  setState(() {
+                                                                    likedCurrent
+                                                                        ? postsUrlList[startIndex +
+                                                                                index]
+                                                                            .likes
+                                                                            .remove(loggedUser!
+                                                                                .userToken!)
+                                                                        : postsUrlList[startIndex +
+                                                                                index]
+                                                                            .likes
+                                                                            .add(loggedUser!.userToken!);
+                                                                  });
+                                                                },
+                                                              ),
+                                                              Text(
+                                                                postsUrlList[
+                                                                        startIndex +
+                                                                            index]
+                                                                    .likes
+                                                                    .length
+                                                                    .toString(),
+                                                                style: TextStyle(
+                                                                    fontFamily:
+                                                                        fonts
+                                                                            .bodyFont,
+                                                                    fontSize:
+                                                                        20),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          TextButton(
+                                                            onPressed: () {
+                                                              showDialog(
+                                                                context:
+                                                                    context,
+                                                                builder:
+                                                                    (context) {
+                                                                  return AlertDialog(
+                                                                    title:
+                                                                        Center(
+                                                                      child:
+                                                                          Text(
+                                                                        "Comments",
+                                                                        style:
+                                                                            TextStyle(
+                                                                          color:
+                                                                              colorScheme.accentColor,
+                                                                          fontFamily:
+                                                                              fonts.headingFont,
                                                                         ),
                                                                       ),
-                                                                      Align(
-                                                                        alignment:
-                                                                            Alignment.bottomCenter,
-                                                                        child:
-                                                                            Row(
-                                                                          children: [
-                                                                            Expanded(
-                                                                              child: TextFormField(
-                                                                                controller: _commentText,
-                                                                                decoration: InputDecoration(hintText: 'Enter Comment to Post', fillColor: colorScheme.chatBubbleUserBackground, filled: true),
+                                                                    ),
+                                                                    content:
+                                                                        StatefulBuilder(
+                                                                      builder: (BuildContext
+                                                                              context,
+                                                                          StateSetter
+                                                                              setState) {
+                                                                        return Container(
+                                                                          width:
+                                                                              double.maxFinite,
+                                                                          child:
+                                                                              Column(
+                                                                            mainAxisSize:
+                                                                                MainAxisSize.min,
+                                                                            children: [
+                                                                              Expanded(
+                                                                                child: ListView.builder(
+                                                                                  itemCount: postsUrlList[startIndex + index].comments.length,
+                                                                                  itemBuilder: (context, commentIndex) {
+                                                                                    final comment = postsUrlList[startIndex + index].comments[commentIndex];
+                                                                                    Timestamp time = comment['time'];
+
+                                                                                    return ListTile(
+                                                                                      title: Text(
+                                                                                        comment['comments'],
+                                                                                        style: TextStyle(fontFamily: fonts.primaryFont, fontSize: 20),
+                                                                                      ),
+                                                                                      subtitle: Text(
+                                                                                        userTokenMap[comment['userToken']] + "\n" + format(time),
+                                                                                        style: TextStyle(fontFamily: fonts.secondaryFont, fontSize: 10),
+                                                                                      ),
+                                                                                    );
+                                                                                  },
+                                                                                ),
                                                                               ),
-                                                                            ),
-                                                                            IconButton(
-                                                                              onPressed: () async {
-                                                                                await _addCommentToPost(index, _commentText.text);
-                                                                                setState(() {
-                                                                                  _commentText.clear();
-                                                                                });
-                                                                              },
-                                                                              icon: Icon(
-                                                                                Icons.send,
-                                                                                size: 20,
+                                                                              Align(
+                                                                                alignment: Alignment.bottomCenter,
+                                                                                child: Row(
+                                                                                  children: [
+                                                                                    Expanded(
+                                                                                      child: TextFormField(
+                                                                                        controller: _commentText,
+                                                                                        decoration: InputDecoration(
+                                                                                          hintText: 'Enter Comment to Post',
+                                                                                          fillColor: colorScheme.chatBubbleUserBackground,
+                                                                                          filled: true,
+                                                                                        ),
+                                                                                      ),
+                                                                                    ),
+                                                                                    IconButton(
+                                                                                      onPressed: () async {
+                                                                                        await _addCommentToPost(startIndex + index, _commentText.text);
+                                                                                        setState(() {
+                                                                                          _commentText.clear();
+                                                                                        });
+                                                                                      },
+                                                                                      icon: Icon(
+                                                                                        Icons.send,
+                                                                                        size: 20,
+                                                                                      ),
+                                                                                    ),
+                                                                                  ],
+                                                                                ),
                                                                               ),
-                                                                            ),
-                                                                          ],
-                                                                        ),
-                                                                      )
-                                                                    ],
-                                                                  ),
-                                                                ),
+                                                                            ],
+                                                                          ),
+                                                                        );
+                                                                      },
+                                                                    ),
+                                                                  );
+                                                                },
                                                               );
                                                             },
-                                                          );
-                                                        },
-                                                        child: Text(
-                                                          'Comments',
-                                                          style: TextStyle(
-                                                              color: colorScheme
-                                                                  .primaryColor,
-                                                              fontFamily: fonts
-                                                                  .anotherFont),
-                                                        ))
-                                                  ],
+                                                            child: Text(
+                                                              'Comments',
+                                                              style: TextStyle(
+                                                                color: colorScheme
+                                                                    .primaryColor,
+                                                                fontFamily: fonts
+                                                                    .anotherFont,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
                                                 ),
-                                              ),
-                                            ),
+                                              );
+                                            }),
                                           );
                                         },
                                       ),
                               )
                             : ElevatedButton(
                                 onPressed: () async {
+                                  setState(() {
+                                    isLoading = true;
+                                  });
                                   await loggedUser!
-                                      .addFollowing(user!.UserName);
-                                  await user!.addFollower(loggedUser!.UserName);
+                                      .addFollowing(user!.userToken!);
+                                  await user!
+                                      .addFollower(loggedUser!.userToken!);
                                   setState(() {
                                     following = true;
                                     count = user!.following.length;
+                                    isLoading = false;
                                   });
                                 },
                                 child: Text(

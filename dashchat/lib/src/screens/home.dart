@@ -34,9 +34,6 @@ class _HomeScreenState extends State<HomeScreen> {
   FileImage? _image;
   bool _isLoading = false;
   Future _pickImageGallery(ImageSource source) async {
-    setState(() {
-      _isLoading = true;
-    });
     final pickedImage =
         await ImagePicker().pickImage(source: ImageSource.gallery);
 
@@ -46,20 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
     Post post = Post();
-    post.addPost(_image!);
+    await post.addPost(_image!);
     User user = await User.getCurrentUser();
-    user.addPost(post.postUrl!);
-    setState(() {
-      _isLoading = false;
-    });
-
-    Navigator.pop(context);
+    await user.addPost(post.postUrl!);
   }
 
   Future _pickImageCamera(ImageSource source) async {
-    setState(() {
-      _isLoading = true;
-    });
     final pickedImage =
         await ImagePicker().pickImage(source: ImageSource.camera);
 
@@ -71,12 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Post post = Post();
     await post.addPost(_image!);
     User user = await User.getCurrentUser();
-    user.addPost(post.postUrl!);
-    setState(() {
-      _isLoading = false;
-    });
-
-    Navigator.pop(context);
+    await user.addPost(post.postUrl!);
   }
 
   AppColorScheme colorScheme = AppColorScheme.defaultScheme();
@@ -90,16 +74,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
         appBar: AppBar(
           backgroundColor: (colorScheme.accentColor),
+          leadingWidth: screenWidth * 0.3,
+          leading: Padding(
+            padding: const EdgeInsets.all(2.0),
+            child: Image.asset(
+              'images/dash.png',
+            ),
+          ),
           actions: [
             SizedBox(
-              width: screenWidth,
+              width: 0.7 * screenWidth,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(2.0),
-                    child: Image.asset('images/dash.png'),
-                  ),
                   Text(
                     'DashChat',
                     style: TextStyle(
@@ -107,16 +94,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: (colorScheme.textColorLight),
                         fontFamily: fonts.headingFont),
                   ),
-                  Row(
-                    children: [
-                      IconButton(
-                          onPressed: () {},
-                          icon: Icon(
-                            Icons.message,
-                            color: colorScheme.chatBubbleOtherUserBackground,
-                          )),
-                    ],
-                  ),
+                  IconButton(
+                      onPressed: () {},
+                      icon: Icon(
+                        Icons.message,
+                        color: colorScheme.chatBubbleOtherUserBackground,
+                      )),
                 ],
               ),
             ),
@@ -204,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                     builder: (context) =>
                                                                         userProfile(
                                                                             userFound:
-                                                                                _users[index]['name'])));
+                                                                                _users[index]['userName'])));
                                                           },
                                                           leading: CircleAvatar(
                                                             backgroundImage:
@@ -214,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                           ),
                                                           title: Text(
                                                             _users[index]
-                                                                ['name'],
+                                                                ['userName'],
                                                             style: TextStyle(
                                                                 color: colorScheme
                                                                     .textColorSecondary,
@@ -251,37 +234,75 @@ class _HomeScreenState extends State<HomeScreen> {
                         IconButton(
                             onPressed: () {
                               showDialog(
-                                barrierDismissible: !_isLoading,
+                                barrierDismissible: false,
                                 context: context,
                                 builder: (context) {
                                   return AlertDialog(
                                       content: Container(
-                                    height: screenHeight * 0.15,
-                                    width: screenWidth * 0.8,
-                                    child: _isLoading
-                                        ? Center(
-                                            child: CircularProgressIndicator())
-                                        : Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              ElevatedButton(
-                                                onPressed: () =>
-                                                    _pickImageGallery(
-                                                        ImageSource.gallery),
-                                                child: const Text(
-                                                    'Pick Photo from Gallery'),
-                                              ),
-                                              ElevatedButton(
-                                                onPressed: () =>
-                                                    _pickImageCamera(
-                                                        ImageSource.camera),
-                                                child: const Text(
-                                                    'Pick Photo from Camera'),
-                                              ),
-                                            ],
-                                          ),
-                                  ));
+                                          height: screenHeight * 0.20,
+                                          width: screenWidth * 0.8,
+                                          child: StatefulBuilder(
+                                            builder: (context, setState) {
+                                              return _isLoading
+                                                  ? Center(
+                                                      child:
+                                                          CircularProgressIndicator())
+                                                  : Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+                                                      children: [
+                                                        Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            IconButton(
+                                                              icon: Icon(Icons
+                                                                  .arrow_back),
+                                                              onPressed: () {
+                                                                Navigator.pop(
+                                                                    context);
+                                                              },
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () async {
+                                                            setState(() {
+                                                              _isLoading = true;
+                                                            });
+                                                            await _pickImageGallery(
+                                                                ImageSource
+                                                                    .gallery);
+                                                            setState(() {
+                                                              _isLoading =
+                                                                  false;
+                                                            });
+                                                          },
+                                                          child: const Text(
+                                                              'Pick Photo from Gallery'),
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () async {
+                                                            setState(() {
+                                                              _isLoading = true;
+                                                            });
+                                                            await _pickImageCamera(
+                                                                ImageSource
+                                                                    .gallery);
+                                                            setState(() {
+                                                              _isLoading =
+                                                                  false;
+                                                            });
+                                                          },
+                                                          child: const Text(
+                                                              'Pick Photo from Camera'),
+                                                        ),
+                                                      ],
+                                                    );
+                                            },
+                                          )));
                                 },
                               );
                             },
@@ -289,11 +310,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         IconButton(
                             onPressed: () async {
                               User currentUser = await User.getCurrentUser();
+
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => userProfile(
-                                          userFound: currentUser.DisplayName)));
+                                          userFound: currentUser.userName)));
                             },
                             icon: Icon(Icons.person_4)),
                         IconButton(
@@ -350,8 +372,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                 .getCurrentUser();
 
                                                         if (currentUser
-                                                                .Password ==
-                                                            user.Password) {
+                                                                .password ==
+                                                            user.password) {
                                                           passwordsMatch = true;
                                                           await User.logout();
                                                           Navigator.pop(

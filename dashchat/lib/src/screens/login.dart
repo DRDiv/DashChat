@@ -83,10 +83,10 @@ class _LoginPageState extends State<LoginPage> {
                   style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.buttonColor),
                   onPressed: () async {
-                    User user = await User.get(_username.text);
+                    User user = await User.getByUsername(_username.text);
                     User currentUser =
                         User("", _password.text, "", "", null, "");
-                    if (user.UserName == "") {
+                    if (user.userName == "") {
                       setState(() {
                         userExists = false;
                       });
@@ -98,10 +98,12 @@ class _LoginPageState extends State<LoginPage> {
                       userExists = true;
                     });
 
-                    if (currentUser.Password != user.Password) {
+                    if (currentUser.password != user.password) {
                       setState(() {
                         passwordMatch = false;
                       });
+                      _username.clear();
+                      _password.clear();
                       return;
                     }
 

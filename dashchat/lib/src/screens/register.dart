@@ -102,8 +102,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool booleanPassword = false;
-  int numberLines1 = 3;
-  int numberLines = 6;
+  int numberLines1 = 1;
+  int numberLines = 1;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,8 +168,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         controller: _username,
                         decoration: InputDecoration(
                             errorText: usernameMatch ? null : stringErrorUser,
-                            hintText:
-                                'Enter Username \nAt least 3 letters,characters,numbers\n and "_" allowed',
+                            hintText: 'Enter Username ',
+                            counterText: usernameMatch
+                                ? "At least 3 letters \nCharacters,Numbers and _ allowed"
+                                : null,
                             hintStyle: TextStyle(
                                 color: colorScheme.primaryColor,
                                 fontFamily: fonts.accentFont)),
@@ -227,8 +229,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           errorText: passwordMatch
                               ? null
                               : 'Password does not match format',
-                          hintText:
-                              'Enter Password \nat least one letter (uppercase or lowercase) is present\n at least one digit is present\nat least one special character is present\na minimum length of 8 characters.',
+                          counterText: passwordMatch
+                              ? "At least one letter (uppercase or lowercase) is present\nAt least one digit is present\nAt least one special character is present\nA minimum length of 8 characters"
+                              : null,
+                          hintText: 'Enter Password ',
                           hintStyle: TextStyle(
                               color: colorScheme.primaryColor,
                               fontFamily: fonts.accentFont),
@@ -353,8 +357,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _caption.clear();
                   _image = null;
                   booleanPassword = false;
-                  numberLines1 = 3;
-                  numberLines = 6;
+                  numberLines1 = 1;
+                  numberLines = 1;
                 });
               },
               child: Text(
