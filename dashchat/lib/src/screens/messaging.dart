@@ -10,8 +10,8 @@ class MessageBubble extends StatelessWidget {
   final String message;
   final bool isMe;
   final Timestamp time;
-  MessageBubble(
-      {required this.message, required this.isMe, required this.time});
+  const MessageBubble(
+      {super.key, required this.message, required this.isMe, required this.time});
   String format(Timestamp timestamp) {
     DateTime dateTime = timestamp.toDate();
     DateTime now = DateTime.now();
@@ -40,8 +40,8 @@ class MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         decoration: BoxDecoration(
           color: isMe
               ? AppColorScheme.defaultScheme().chatBubbleUserBackground
@@ -54,11 +54,11 @@ class MessageBubble extends StatelessWidget {
           children: [
             Text(
               message,
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(fontSize: 16),
             ),
             Text(
               format(time),
-              style: TextStyle(fontSize: 5),
+              style: const TextStyle(fontSize: 5),
             )
           ],
         ),
@@ -97,7 +97,7 @@ class _messageScreenState extends State<messageScreen> {
     Message messageObj =
         await Message.getMessages(widget.loggedUser.userToken!);
     setState(() {
-      this.messages = messageObj.messages[widget.displayUser.userToken];
+      messages = messageObj.messages[widget.displayUser.userToken];
     });
   }
 
@@ -128,7 +128,7 @@ class _messageScreenState extends State<messageScreen> {
           onTap: () {
             Navigator.pop(context); // Implement your back navigation logic here
           },
-          child: Icon(
+          child: const Icon(
             Icons.arrow_back_ios_new_sharp,
             color: Colors.white, // Customize the color as needed
           ),
@@ -142,7 +142,7 @@ class _messageScreenState extends State<messageScreen> {
               child: Container(
                 child: StatefulBuilder(
                   builder: (BuildContext context, StateSetter setState) {
-                    return Container(
+                    return SizedBox(
                       width: double.maxFinite,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -172,7 +172,7 @@ class _messageScreenState extends State<messageScreen> {
             BottomAppBar(
               height: 80,
               child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                 child: Row(
                   children: [
                     Expanded(

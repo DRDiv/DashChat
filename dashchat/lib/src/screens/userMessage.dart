@@ -6,7 +6,7 @@ import 'package:dashchat/src/screens/messaging.dart';
 import 'package:flutter/material.dart';
 
 class userMessage extends StatefulWidget {
-  userMessage({super.key});
+  const userMessage({super.key});
 
   @override
   State<userMessage> createState() => _userMessageState();
@@ -23,13 +23,13 @@ class _userMessageState extends State<userMessage> {
   @override
   void initState() {
     super.initState();
-    set();
+    _set();
   }
 
-  Future<void> set() async {
+  Future<void> _set() async {
     User user = await User.getCurrentUser();
     Map userTokenMap = await User.getUsernameMap();
-    Message message = await Message.getMessages(user!.userToken!);
+    Message message = await Message.getMessages(user.userToken!);
     List<User> inbox = [];
     for (String key in message.messages.keys) {
       User u = await User.getByUsername(userTokenMap[key]);
@@ -49,7 +49,7 @@ class _userMessageState extends State<userMessage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: colorScheme.accentColor,
-        automaticallyImplyLeading: false, // Disable the default back arrow
+        automaticallyImplyLeading: false,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -66,11 +66,11 @@ class _userMessageState extends State<userMessage> {
         ),
         leading: GestureDetector(
           onTap: () {
-            Navigator.pop(context); // Implement your back navigation logic here
+            Navigator.pop(context);
           },
-          child: Icon(
+          child: const Icon(
             Icons.arrow_back_ios_new_sharp,
-            color: Colors.white, // Customize the color as needed
+            color: Colors.white,
           ),
         ),
       ),
@@ -79,8 +79,8 @@ class _userMessageState extends State<userMessage> {
           isLoading
               ? SizedBox(
                   height: 0.7 * screenHeight,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+                  child: const Padding(
+                    padding: EdgeInsets.all(20.0),
                     child: Center(child: CircularProgressIndicator()),
                   ),
                 )

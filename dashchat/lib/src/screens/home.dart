@@ -10,7 +10,6 @@ import 'package:dashchat/src/screens/story.dart';
 import 'package:dashchat/src/screens/userMessage.dart';
 import 'package:dashchat/src/screens/userProfile.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -32,15 +31,21 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Post> postList = [];
   bool isLoading = true;
   Map<String, String> profilePicture = {};
-  TextEditingController _commentText = TextEditingController();
+  final TextEditingController _commentText = TextEditingController();
+  FileImage? _image;
+  bool _isLoading = false;
   Map? userTokenMap;
+  AppColorScheme colorScheme = AppColorScheme.defaultScheme();
+  AppFonts fonts = AppFonts.defaultFonts();
+  final TextEditingController _confirmPassword = TextEditingController();
+  @override
   void initState() {
     super.initState();
-    setPostList();
-    setStoryList();
+    _setPostList();
+    _setStoryList();
   }
 
-  String format(Timestamp timestamp) {
+  String _format(Timestamp timestamp) {
     DateTime dateTime = timestamp.toDate();
     DateTime now = DateTime.now();
 
@@ -87,15 +92,15 @@ class _HomeScreenState extends State<HomeScreen> {
       storiesList = {};
     });
 
-    await setPostList();
-    await setStoryList();
+    await _setPostList();
+    await _setStoryList();
 
     setState(() {
       isLoading = false;
     });
   }
 
-  Future<void> setStoryList() async {
+  Future<void> _setStoryList() async {
     User currentUser = await User.getCurrentUser();
     Map<String, List<Story>> storiesList = {};
     List<Story> storyTemp = [];
@@ -127,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> setPostList() async {
+  Future<void> _setPostList() async {
     User currentUser = await User.getCurrentUser();
     for (String post in currentUser.posts) {
       Post postUser = await Post.getPost(post);
@@ -167,9 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchText = '';
   }
 
-  FileImage? _image;
-  bool _isLoading = false;
-  Future _pickImageGallery(ImageSource source) async {
+  Future<void> _pickImageGallery(ImageSource source) async {
     final pickedImage =
         await ImagePicker().pickImage(source: ImageSource.gallery);
 
@@ -184,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await user.addPost(post.postUrl!);
   }
 
-  Future _pickImageCamera(ImageSource source) async {
+  Future<void> _pickImageCamera(ImageSource source) async {
     final pickedImage =
         await ImagePicker().pickImage(source: ImageSource.camera);
 
@@ -199,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await user.addPost(post.postUrl!);
   }
 
-  Future _pickImageCameraStory(ImageSource source) async {
+  Future<void> _pickImageCameraStory(ImageSource source) async {
     final pickedImage =
         await ImagePicker().pickImage(source: ImageSource.camera);
 
@@ -214,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await user.addStory(story.storyUrl!);
   }
 
-  Future _pickImageGalleryStory(ImageSource source) async {
+  Future<void> _pickImageGalleryStory(ImageSource source) async {
     final pickedImage =
         await ImagePicker().pickImage(source: ImageSource.gallery);
 
@@ -228,10 +231,6 @@ class _HomeScreenState extends State<HomeScreen> {
     User user = await User.getCurrentUser();
     await user.addStory(story.storyUrl!);
   }
-
-  AppColorScheme colorScheme = AppColorScheme.defaultScheme();
-  AppFonts fonts = AppFonts.defaultFonts();
-  final TextEditingController _confirmPassword = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -265,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => userMessage()));
+                                builder: (context) => const userMessage()));
                       },
                       icon: Icon(
                         Icons.message,
@@ -282,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ? SizedBox(
                   height: screenHeight * 0.7,
                   width: screenWidth,
-                  child: Center(child: CircularProgressIndicator()))
+                  child: const Center(child: CircularProgressIndicator()))
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -292,13 +291,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         for (String token in storiesList.keys)
                           GestureDetector(
                             onTap: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: ((context) => StoryPage(
-                                          username: userTokenMap![token],
-                                          storyList: storiesList[token]!,
-                                          index: 0))));
+                              if (storiesList[token]!.isNotEmpty) {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: ((context) => StoryPage(
+                                            username: userTokenMap![token],
+                                            storyList: storiesList[token]!,
+                                            index: 0))));
+                              }
                             },
                             child: Column(
                               children: [
@@ -318,10 +319,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                               fit: BoxFit.cover,
                                             ))),
                                 ),
-                                SizedBox(height: 10),
+                                const SizedBox(height: 10),
                                 Text(
                                   userTokenMap![token],
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold),
                                 ),
@@ -391,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(format(postList[rowIndex].time!)),
+                                    Text(_format(postList[rowIndex].time!)),
                                     (postList[rowIndex].caption != "")
                                         ? Padding(
                                             padding: const EdgeInsets.all(8.0),
@@ -404,7 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   fontSize: 20),
                                             ),
                                           )
-                                        : SizedBox(
+                                        : const SizedBox(
                                             height: 0,
                                             width: 0,
                                           ),
@@ -437,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                             .contains(
                                                                 loggedUser!
                                                                     .userToken);
-                                                    await likedCurrent
+                                                    likedCurrent
                                                         ? Post.unlikePost(
                                                             postList[rowIndex]
                                                                 .postUrl!,
@@ -496,7 +497,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     builder: (BuildContext
                                                             context,
                                                         StateSetter setState) {
-                                                      return Container(
+                                                      return SizedBox(
                                                         width: double.maxFinite,
                                                         child: Column(
                                                           mainAxisSize:
@@ -536,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                       userTokenMap![comment[
                                                                               'userToken']] +
                                                                           "\n" +
-                                                                          format(
+                                                                          _format(
                                                                               time),
                                                                       style: TextStyle(
                                                                           fontFamily: fonts
@@ -582,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                             .clear();
                                                                       });
                                                                     },
-                                                                    icon: Icon(
+                                                                    icon: const Icon(
                                                                       Icons
                                                                           .send,
                                                                       size: 20,
@@ -637,13 +638,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               showDialog(
                                 context: context,
                                 builder: (context) {
-                                  TextEditingController _like =
+                                  TextEditingController like =
                                       TextEditingController();
 
                                   return StatefulBuilder(
                                       builder: (context, setState) {
                                     return AlertDialog(
-                                      content: Container(
+                                      content: SizedBox(
                                         height: screenHeight * 0.6,
                                         width: screenWidth * 0.8,
                                         child: Column(
@@ -657,7 +658,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     _searchText = text;
                                                   });
                                                 },
-                                                controller: _like,
+                                                controller: like,
                                                 style: TextStyle(
                                                     color: colorScheme
                                                         .textColorPrimary,
@@ -670,9 +671,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                               builder: (context, snapshot) {
                                                 if (snapshot.connectionState ==
                                                     ConnectionState.waiting) {
-                                                  return Padding(
+                                                  return const Padding(
                                                     padding:
-                                                        const EdgeInsets.only(
+                                                        EdgeInsets.only(
                                                             top: 25),
                                                     child:
                                                         CircularProgressIndicator(),
@@ -753,13 +754,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 context: context,
                                 builder: (context) {
                                   return AlertDialog(
-                                      content: Container(
+                                      content: SizedBox(
                                           height: screenHeight * 0.20,
                                           width: screenWidth * 0.8,
                                           child: StatefulBuilder(
                                             builder: (context, setState) {
                                               return _isLoading
-                                                  ? Center(
+                                                  ? const Center(
                                                       child:
                                                           CircularProgressIndicator())
                                                   : Column(
@@ -773,7 +774,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                   .start,
                                                           children: [
                                                             IconButton(
-                                                              icon: Icon(Icons
+                                                              icon: const Icon(Icons
                                                                   .arrow_back),
                                                               onPressed: () {
                                                                 Navigator.pop(
@@ -791,14 +792,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                               builder:
                                                                   (context) {
                                                                 return AlertDialog(
-                                                                    content: Container(
+                                                                    content: SizedBox(
                                                                         height: screenHeight * 0.20,
                                                                         width: screenWidth * 0.8,
                                                                         child: StatefulBuilder(
                                                                           builder:
                                                                               (context, setState) {
                                                                             return _isLoading
-                                                                                ? Center(child: CircularProgressIndicator())
+                                                                                ? const Center(child: CircularProgressIndicator())
                                                                                 : Column(
                                                                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                                                     children: [
@@ -806,7 +807,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                                         mainAxisAlignment: MainAxisAlignment.start,
                                                                                         children: [
                                                                                           IconButton(
-                                                                                            icon: Icon(Icons.arrow_back),
+                                                                                            icon: const Icon(Icons.arrow_back),
                                                                                             onPressed: () {
                                                                                               Navigator.pop(context);
                                                                                             },
@@ -858,14 +859,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                                               builder:
                                                                   (context) {
                                                                 return AlertDialog(
-                                                                    content: Container(
+                                                                    content: SizedBox(
                                                                         height: screenHeight * 0.20,
                                                                         width: screenWidth * 0.8,
                                                                         child: StatefulBuilder(
                                                                           builder:
                                                                               (context, setState) {
                                                                             return _isLoading
-                                                                                ? Center(child: CircularProgressIndicator())
+                                                                                ? const Center(child: CircularProgressIndicator())
                                                                                 : Column(
                                                                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                                                     children: [
@@ -873,7 +874,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                                         mainAxisAlignment: MainAxisAlignment.start,
                                                                                         children: [
                                                                                           IconButton(
-                                                                                            icon: Icon(Icons.arrow_back),
+                                                                                            icon: const Icon(Icons.arrow_back),
                                                                                             onPressed: () {
                                                                                               Navigator.pop(context);
                                                                                             },
@@ -923,7 +924,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 },
                               );
                             },
-                            icon: Icon(Icons.add_photo_alternate)),
+                            icon: const Icon(Icons.add_photo_alternate)),
                         IconButton(
                             onPressed: () async {
                               User currentUser = await User.getCurrentUser();
@@ -934,7 +935,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       builder: (context) => userProfile(
                                           userFound: currentUser.userName)));
                             },
-                            icon: Icon(Icons.person_4)),
+                            icon: const Icon(Icons.person_4)),
                         IconButton(
                             onPressed: () {
                               showDialog(
@@ -946,7 +947,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     return AlertDialog(
                                       backgroundColor:
                                           colorScheme.backgroundColor,
-                                      content: Container(
+                                      content: SizedBox(
                                         width: screenWidth * 0.85,
                                         height: screenHeight * 0.25,
                                         child: Column(

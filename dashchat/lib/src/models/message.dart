@@ -1,20 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:dashchat/src/models/user.dart';
 
 class Message {
   String userToken;
   Map<String, dynamic> messages = {};
-  Message(this.userToken) {}
-  Map<String, dynamic> docReturn() {
+  Message(this.userToken);
+  Message.set(this.userToken, this.messages);
+
+  Map<String, dynamic> _docReturn() {
     Map<String, dynamic> doc = {
-      'userToken': this.userToken,
-      'messages': this.messages,
+      'userToken': userToken,
+      'messages': messages,
     };
     return doc;
   }
 
-  Message.set(this.userToken, this.messages) {}
-  Map<String, dynamic> messageDocs(
+  Map<String, dynamic> _messageDocs(
       String sender, String message, Timestamp time) {
     Map<String, dynamic> docs = {
       'sender': sender,
@@ -27,7 +27,7 @@ class Message {
   void registerDm() {
     final CollectionReference messageCollection =
         FirebaseFirestore.instance.collection('messages');
-    messageCollection.add(docReturn());
+    messageCollection.add(_docReturn());
   }
 
   static Future<Message> getMessages(String userToken) async {
@@ -52,9 +52,9 @@ class Message {
     if (messages[userTokenReceiver] == null) {
       messages[userTokenReceiver] = [];
     }
-    ;
+
     messages[userTokenReceiver]
-        .add(messageDocs(userTokenSender, message, time));
+        .add(_messageDocs(userTokenSender, message, time));
     this.messages = messages;
     DocumentSnapshot messageDocSnapshot = querySnapshot.docs.first;
     String messageDocId = messageDocSnapshot.id;
@@ -71,7 +71,7 @@ class Message {
     if (messages[userTokenSender] == null) {
       messages[userTokenSender] = [];
     }
-    messages[userTokenSender].add(messageDocs(userTokenSender, message, time));
+    messages[userTokenSender].add(_messageDocs(userTokenSender, message, time));
 
     messageDocSnapshot = querySnapshot.docs.first;
     messageDocId = messageDocSnapshot.id;

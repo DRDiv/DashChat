@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 
-import 'dart:math';
 import 'package:dashchat/src/models/message.dart';
 import 'package:uuid/uuid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -26,7 +25,24 @@ class User {
   List following = [];
   List posts = [];
   List stories = [];
-  Map<String, dynamic> docReturn() {
+  User(this.userName, password, this.email, this.displayName, this._profile,
+      this.caption) {
+    userToken = const Uuid().v4();
+    this.password = _hashPass(password);
+  }
+  User.setUser(
+      this.userToken,
+      this.userName,
+      this.password,
+      this.email,
+      this.displayName,
+      this.profileUrl,
+      this.caption,
+      this.followers,
+      this.following,
+      this.posts,
+      this.stories);
+  Map<String, dynamic> _docReturn() {
     Map<String, dynamic> docs = {
       'userToken': userToken,
       'userName': userName,
@@ -43,24 +59,7 @@ class User {
     return docs;
   }
 
-  User(this.userName, password, this.email, this.displayName, this._profile,
-      this.caption) {
-    userToken = Uuid().v4();
-    this.password = _hashPass(password);
-  }
-  User.setUser(
-      this.userToken,
-      this.userName,
-      this.password,
-      this.email,
-      this.displayName,
-      this.profileUrl,
-      this.caption,
-      this.followers,
-      this.following,
-      this.posts,
-      this.stories);
-  Future<void> Register() async {
+  Future<void> register() async {
     if (_profile != null) {
       File profileFile = _profile!.file;
       Reference storageReference0 = FirebaseStorage.instance.ref();
@@ -76,7 +75,7 @@ class User {
 
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('users');
-    usersCollection.add(docReturn());
+    usersCollection.add(_docReturn());
     Message message = Message(userToken!);
     message.registerDm();
   }
@@ -205,7 +204,7 @@ class User {
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('userSession');
     Map<String, dynamic> docs = {'userToken': userToken};
-    var uuid = Uuid();
+    var uuid = const Uuid();
     docs['loginToken'] = uuid.v1();
     usersCollection.add(docs);
   }

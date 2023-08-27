@@ -6,8 +6,8 @@ class StoryPage extends StatefulWidget {
   final List<Story> storyList;
   final int index;
 
-  StoryPage({
-    Key? key,
+  const StoryPage({
+    super.key,
     required this.username,
     required this.storyList,
     required this.index,
@@ -27,7 +27,6 @@ class _StoryPageState extends State<StoryPage> {
       body: GestureDetector(
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity! > 0) {
-            // Swiped from left to right (previous story)
             if (widget.index > 0) {
               Navigator.push(
                 context,
@@ -43,7 +42,6 @@ class _StoryPageState extends State<StoryPage> {
               Navigator.of(context).popUntil((route) => route.isFirst);
             }
           } else if (details.primaryVelocity! < 0) {
-            // Swiped from right to left (next story)
             if (widget.index < widget.storyList.length - 1) {
               Navigator.push(
                 context,

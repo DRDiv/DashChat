@@ -12,7 +12,10 @@ class Story {
   Timestamp? time;
   List likes = [];
   List views = [];
-  Map<String, dynamic> docReturn() {
+  Story();
+  Story.set(this.userToken, this.storyUrl, this.time, this.views, this.likes);
+
+  Map<String, dynamic> _docReturn() {
     Map<String, dynamic> doc = {
       'userToken': userToken,
       'storyUrl': storyUrl,
@@ -23,22 +26,20 @@ class Story {
     return doc;
   }
 
-  Story() {}
-  Story.set(this.userToken, this.storyUrl, this.time, this.views, this.likes);
-  Future<void> addStory(FileImage _postImage) async {
+  Future<void> addStory(FileImage postImage) async {
     User current = await User.getCurrentUser();
     userToken = current.userToken;
-    File profileFile = _postImage!.file;
+    File storyFile = postImage.file;
     Reference storageReference0 = FirebaseStorage.instance.ref();
-    String fileName = path.basename(profileFile.path);
+    String fileName = path.basename(storyFile.path);
     Reference storageReference = storageReference0.child('stories/$fileName');
 
-    TaskSnapshot taskSnapshot = await storageReference.putFile(profileFile);
+    TaskSnapshot taskSnapshot = await storageReference.putFile(storyFile);
 
     storyUrl = await taskSnapshot.ref.getDownloadURL();
     final CollectionReference postCollection =
         FirebaseFirestore.instance.collection('stories');
-    postCollection.add(docReturn());
+    postCollection.add(_docReturn());
   }
 
   static Future<List<Story>> getAllStories() async {
@@ -75,41 +76,41 @@ class Story {
     return story;
   }
 
-  static Future<void> likePost(String storyUrl, String userToken) async {
-    QuerySnapshot<Map<String, dynamic>> postList = await FirebaseFirestore
+  static Future<void> likeStory(String storyUrl, String userToken) async {
+    QuerySnapshot<Map<String, dynamic>> storyList = await FirebaseFirestore
         .instance
         .collection('stories')
         .where('storyUrl', isEqualTo: storyUrl)
         .get();
 
-    DocumentSnapshot postDocSnapshot = postList.docs.first;
-    String postDocId = postDocSnapshot.id;
-    List likes = postDocSnapshot['likes'];
+    DocumentSnapshot storyDocSnapshot = storyList.docs.first;
+    String storyDocId = storyDocSnapshot.id;
+    List likes = storyDocSnapshot['likes'];
     likes.add(userToken);
 
     DocumentReference postDocRef =
-        FirebaseFirestore.instance.collection('stories').doc(postDocId);
+        FirebaseFirestore.instance.collection('stories').doc(storyDocId);
     await postDocRef.update({
       'likes': likes,
     });
   }
 
   static Future<void> addView(String storyUrl, String userToken) async {
-    QuerySnapshot<Map<String, dynamic>> postList = await FirebaseFirestore
+    QuerySnapshot<Map<String, dynamic>> storyList = await FirebaseFirestore
         .instance
         .collection('stories')
         .where('storyUrl', isEqualTo: storyUrl)
         .get();
 
-    DocumentSnapshot postDocSnapshot = postList.docs.first;
-    String postDocId = postDocSnapshot.id;
-    List views = postDocSnapshot['views'];
+    DocumentSnapshot storyDocSnapshot = storyList.docs.first;
+    String storyDocId = storyDocSnapshot.id;
+    List views = storyDocSnapshot['views'];
     if (views.contains(userToken)) return;
     views.add(userToken);
 
-    DocumentReference postDocRef =
-        FirebaseFirestore.instance.collection('stories').doc(postDocId);
-    await postDocRef.update({
+    DocumentReference storyDocRef =
+        FirebaseFirestore.instance.collection('stories').doc(storyDocId);
+    await storyDocRef.update({
       'views': views,
     });
   }

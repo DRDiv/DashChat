@@ -29,6 +29,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String stringErrorUser = "";
   String stringErrorEmail = "";
+  bool booleanPassword = false;
+  int numberLines1 = 1;
+  int numberLines = 1;
+  FileImage? _image;
   Future<void> _emailEmpty() async {
     String emailPattern = r'^[a-zA-Z0-9._%+-]{1,1000}@gmail\.com$';
     RegExp regExp = RegExp(emailPattern);
@@ -52,16 +56,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // void _checkPassword() {
-  //   String passwordPattern =
-  //       r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$';
-  //   RegExp regExp = RegExp(passwordPattern);
-  //   passwordMatch = regExp.hasMatch(_password.text);
-  //   if (!passwordMatch) {
-  //     _password.clear();
-  //     _confirmPassword.clear();
-  //   }
-  // }
+  void _checkPassword() {
+    String passwordPattern =
+        r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$';
+    RegExp regExp = RegExp(passwordPattern);
+    passwordMatch = regExp.hasMatch(_password.text);
+    if (!passwordMatch) {
+      _password.clear();
+      _confirmPassword.clear();
+    }
+  }
 
   void _checkPasswordMatch() {
     if (_password.text != _confirmPassword.text) {
@@ -76,8 +80,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     }
   }
-
-  FileImage? _image;
 
   Future _pickImageGallery(ImageSource source) async {
     final pickedImage =
@@ -101,9 +103,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  bool booleanPassword = false;
-  int numberLines1 = 1;
-  int numberLines = 1;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -266,11 +265,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _checkUsername();
                 });
                 if (!usernameMatch) return;
-                // setState(() {
-                // _checkPassword();
-                // });
+                setState(() {
+                  _checkPassword();
+                });
 
-                // if (!passwordMatch) return;
+                if (!passwordMatch) return;
                 setState(() {
                   _checkPasswordMatch();
                 });
@@ -314,7 +313,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 );
 
-                await user.Register();
+                await user.register();
                 Navigator.pop(context);
                 // ignore: use_build_context_synchronously
                 showDialog(

@@ -14,7 +14,10 @@ class Post {
   String caption = "";
   List comments = [];
   List likes = [];
-  Map<String, dynamic> docReturn() {
+  Post();
+  Post.set(this.userToken, this.postUrl, this.time, this.comments, this.likes,
+      this.caption);
+  Map<String, dynamic> _docReturn() {
     Map<String, dynamic> doc = {
       'userToken': userToken,
       'postUrl': postUrl,
@@ -26,13 +29,10 @@ class Post {
     return doc;
   }
 
-  Post() {}
-  Post.set(this.userToken, this.postUrl, this.time, this.comments, this.likes,
-      this.caption);
-  Future<void> addPost(FileImage _postImage) async {
+  Future<void> addPost(FileImage postImage) async {
     User current = await User.getCurrentUser();
     userToken = current.userToken;
-    File profileFile = _postImage!.file;
+    File profileFile = postImage.file;
     Reference storageReference0 = FirebaseStorage.instance.ref();
     String fileName = path.basename(profileFile.path);
     Reference storageReference = storageReference0.child('posts/$fileName');
@@ -42,7 +42,7 @@ class Post {
     postUrl = await taskSnapshot.ref.getDownloadURL();
     final CollectionReference postCollection =
         FirebaseFirestore.instance.collection('posts');
-    postCollection.add(docReturn());
+    postCollection.add(_docReturn());
   }
 
   static Future<List<Post>> getAllPost() async {

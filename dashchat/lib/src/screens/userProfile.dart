@@ -5,7 +5,6 @@ import 'package:dashchat/src/models/posts.dart';
 import 'package:dashchat/src/models/user.dart';
 import 'package:dashchat/src/screens/messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class userProfile extends StatefulWidget {
@@ -19,7 +18,7 @@ class userProfile extends StatefulWidget {
 class _userProfileState extends State<userProfile> {
   AppColorScheme colorScheme = AppColorScheme.defaultScheme();
   AppFonts fonts = AppFonts.defaultFonts();
-  TextEditingController _commentText = TextEditingController();
+  final TextEditingController _commentText = TextEditingController();
   List<TextEditingController>? _caption;
   bool? following;
   User? user;
@@ -38,7 +37,7 @@ class _userProfileState extends State<userProfile> {
     _fetchPost();
   }
 
-  String format(Timestamp timestamp) {
+  String _format(Timestamp timestamp) {
     DateTime dateTime = timestamp.toDate();
     DateTime now = DateTime.now();
 
@@ -128,7 +127,7 @@ class _userProfileState extends State<userProfile> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: colorScheme.accentColor,
-        automaticallyImplyLeading: false, // Disable the default back arrow
+        automaticallyImplyLeading: false,
         centerTitle: true,
         title: Text(
           'DashChat',
@@ -138,14 +137,13 @@ class _userProfileState extends State<userProfile> {
             fontFamily: fonts.headingFont,
           ),
         ),
-
         leading: GestureDetector(
           onTap: () {
-            Navigator.pop(context); // Implement your back navigation logic here
+            Navigator.pop(context);
           },
-          child: Icon(
+          child: const Icon(
             Icons.arrow_back_ios_sharp,
-            color: Colors.white, // Customize the color as needed
+            color: Colors.white,
           ),
         ),
         actions: [
@@ -172,7 +170,7 @@ class _userProfileState extends State<userProfile> {
         ],
       ),
       body: isLoading
-          ? Center(
+          ? const Center(
               child: CircularProgressIndicator(),
             )
           : Scrollbar(
@@ -280,22 +278,22 @@ class _userProfileState extends State<userProfile> {
                                       isLoading = false;
                                     });
                                   },
+                                  style: ElevatedButton.styleFrom(
+                                      backgroundColor: colorScheme
+                                          .chatBubbleOtherUserBackground),
                                   child: Text(
                                     "Following",
                                     style: TextStyle(
                                         color: colorScheme.accentColor),
                                   ),
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: colorScheme
-                                          .chatBubbleOtherUserBackground),
                                 ),
                               )
-                            : SizedBox(),
+                            : const SizedBox(),
                         following!
                             ? SizedBox(
                                 width: 0.8 * screenWidth,
                                 child: postLoading
-                                    ? Center(
+                                    ? const Center(
                                         child: CircularProgressIndicator(),
                                       )
                                     : ListView.builder(
@@ -409,7 +407,7 @@ class _userProfileState extends State<userProfile> {
                                                                             fontSize: 20),
                                                                       ),
                                                                     )
-                                                                  : SizedBox(
+                                                                  : const SizedBox(
                                                                       height: 0,
                                                                       width: 0,
                                                                     ),
@@ -441,7 +439,7 @@ class _userProfileState extends State<userProfile> {
                                                                       .contains(
                                                                           loggedUser!
                                                                               .userToken);
-                                                                  await likedCurrent
+                                                                  likedCurrent
                                                                       ? Post.unlikePost(
                                                                           postsUrlList[startIndex + index]
                                                                               .postUrl!,
@@ -510,7 +508,7 @@ class _userProfileState extends State<userProfile> {
                                                                               context,
                                                                           StateSetter
                                                                               setState) {
-                                                                        return Container(
+                                                                        return SizedBox(
                                                                           width:
                                                                               double.maxFinite,
                                                                           child:
@@ -531,7 +529,7 @@ class _userProfileState extends State<userProfile> {
                                                                                         style: TextStyle(fontFamily: fonts.primaryFont, fontSize: 20),
                                                                                       ),
                                                                                       subtitle: Text(
-                                                                                        userTokenMap[comment['userToken']] + "\n" + format(time),
+                                                                                        userTokenMap[comment['userToken']] + "\n" + _format(time),
                                                                                         style: TextStyle(fontFamily: fonts.secondaryFont, fontSize: 10),
                                                                                       ),
                                                                                     );
@@ -559,7 +557,7 @@ class _userProfileState extends State<userProfile> {
                                                                                           _commentText.clear();
                                                                                         });
                                                                                       },
-                                                                                      icon: Icon(
+                                                                                      icon: const Icon(
                                                                                         Icons.send,
                                                                                         size: 20,
                                                                                       ),
@@ -612,13 +610,13 @@ class _userProfileState extends State<userProfile> {
                                     isLoading = false;
                                   });
                                 },
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: colorScheme.buttonColor),
                                 child: Text(
                                   "Follow",
                                   style:
                                       TextStyle(color: colorScheme.buttonText),
                                 ),
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: colorScheme.buttonColor),
                               ),
                       ]),
                 ),
