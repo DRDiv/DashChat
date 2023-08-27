@@ -79,9 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshData() async {
-    // Implement your refresh logic here
-    // For example, you can fetch new data from an API or rebuild the page
-    // You can set isLoading to true, perform the refresh, and then set isLoading to false
     setState(() {
       isLoading = true;
       postList = [];
@@ -90,10 +87,8 @@ class _HomeScreenState extends State<HomeScreen> {
       storiesList = {};
     });
 
-    // Simulate a delay to demonstrate the loading process
     await setPostList();
     await setStoryList();
-    // Refresh your data or page content here
 
     setState(() {
       isLoading = false;
@@ -130,11 +125,16 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       this.storiesList = storiesList;
     });
-    print(profilePicture);
   }
 
   Future<void> setPostList() async {
     User currentUser = await User.getCurrentUser();
+    for (String post in currentUser.posts) {
+      Post postUser = await Post.getPost(post);
+      setState(() {
+        postList.add(postUser);
+      });
+    }
     List tokenFollowing = currentUser.following;
     List<Post> postListAll = await Post.getAllPost();
     for (Post post in postListAll) {
@@ -143,10 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
         String profilePic = niceUser.profileUrl;
 
         setState(() {
-          this.postList.add(post);
-          if (profilePicture != "") {
-            profilePicture[post.userToken!] = profilePic;
-          }
+          postList.add(post);
+
+          profilePicture[post.userToken!] = profilePic;
         });
       }
     }
