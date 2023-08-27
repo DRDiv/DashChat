@@ -89,6 +89,10 @@ class _messageScreenState extends State<messageScreen> {
     _getMessages();
   }
 
+  Future<void> _refreshMessages() async {
+    await _getMessages();
+  }
+
   Future<void> _getMessages() async {
     Message messageObj =
         await Message.getMessages(widget.loggedUser.userToken!);
@@ -130,88 +134,91 @@ class _messageScreenState extends State<messageScreen> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Container(
-              child: StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-                  return Container(
-                    width: double.maxFinite,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Expanded(
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: messages.length,
-                            itemBuilder: (context, index) {
-                              String messageText = messages[index]['message'];
-                              bool isMe = messages[index]['sender'] ==
-                                  widget.loggedUser.userToken;
-                              return MessageBubble(
-                                  message: messageText,
-                                  isMe: isMe,
-                                  time: messages[index]['time']);
-                            },
+      body: RefreshIndicator(
+        onRefresh: _refreshMessages,
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                child: StatefulBuilder(
+                  builder: (BuildContext context, StateSetter setState) {
+                    return Container(
+                      width: double.maxFinite,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: messages.length,
+                              itemBuilder: (context, index) {
+                                String messageText = messages[index]['message'];
+                                bool isMe = messages[index]['sender'] ==
+                                    widget.loggedUser.userToken;
+                                return MessageBubble(
+                                    message: messageText,
+                                    isMe: isMe,
+                                    time: messages[index]['time']);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          BottomAppBar(
-            height: 80,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Enter Message',
-                        fillColor: colorScheme.chatBubbleUserBackground,
-                        filled: true,
+            BottomAppBar(
+              height: 80,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Enter Message',
+                          fillColor: colorScheme.chatBubbleUserBackground,
+                          filled: true,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: () async {
-                      String message = _messageController.text;
-                      Timestamp time = Timestamp.now();
-                      setState(() {
-                        _messageController.clear();
-                      });
-                      Message messageObject =
-                          Message(widget.loggedUser.userToken!);
-                      await messageObject.addMessage(
-                          message,
-                          widget.loggedUser.userToken!,
-                          widget.displayUser.userToken!,
-                          time);
-                      setState(() {
-                        messages.add({
-                          'sender': widget.loggedUser.userToken!,
-                          'message': message,
-                          'time': time,
+                    IconButton(
+                      onPressed: () async {
+                        String message = _messageController.text;
+                        Timestamp time = Timestamp.now();
+                        setState(() {
+                          _messageController.clear();
                         });
-                      });
-                    },
-                    icon: Icon(
-                      Icons.send,
-                      size: 20,
-                      color: colorScheme.buttonColor,
+                        Message messageObject =
+                            Message(widget.loggedUser.userToken!);
+                        await messageObject.addMessage(
+                            message,
+                            widget.loggedUser.userToken!,
+                            widget.displayUser.userToken!,
+                            time);
+                        setState(() {
+                          messages.add({
+                            'sender': widget.loggedUser.userToken!,
+                            'message': message,
+                            'time': time,
+                          });
+                        });
+                      },
+                      icon: Icon(
+                        Icons.send,
+                        size: 20,
+                        color: colorScheme.buttonColor,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
