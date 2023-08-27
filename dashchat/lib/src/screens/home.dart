@@ -1,13 +1,18 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dashchat/src/models/colors.dart';
 import 'package:dashchat/src/models/fonts.dart';
 import 'package:dashchat/src/models/posts.dart';
+import 'package:dashchat/src/models/stories.dart';
 import 'package:dashchat/src/models/user.dart';
+import 'package:dashchat/src/screens/story.dart';
+import 'package:dashchat/src/screens/userMessage.dart';
 import 'package:dashchat/src/screens/userProfile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../database/commands.dart';
 
@@ -21,7 +26,139 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _users = List.empty();
+  Map<String, List<Story>> storiesList = {};
+  User? loggedUser;
   String _searchText = '';
+  List<Post> postList = [];
+  bool isLoading = true;
+  Map<String, String> profilePicture = {};
+  TextEditingController _commentText = TextEditingController();
+  Map? userTokenMap;
+  void initState() {
+    super.initState();
+    setPostList();
+    setStoryList();
+  }
+
+  String format(Timestamp timestamp) {
+    DateTime dateTime = timestamp.toDate();
+    DateTime now = DateTime.now();
+
+    if (now.difference(dateTime).inDays < 1) {
+      if (now.difference(dateTime).inHours < 1) {
+        if (now.difference(dateTime).inMinutes < 1) {
+          return 'Just now';
+        } else {
+          return '${now.difference(dateTime).inMinutes} mins ago';
+        }
+      } else {
+        return '${now.difference(dateTime).inHours} hrs ago';
+      }
+    } else {
+      if (now.year == dateTime.year) {
+        return DateFormat('MMM d').format(dateTime);
+      } else {
+        return DateFormat('MMM d, yyyy').format(dateTime);
+      }
+    }
+  }
+
+  Future<void> _addCommentToPost(int postIndex, String comment) async {
+    Timestamp time = Timestamp.now();
+
+    await Post.addComment(
+        postList[postIndex].postUrl!, comment, loggedUser!.userToken!, time);
+
+    setState(() {
+      postList[postIndex].comments.add({
+        'userToken': loggedUser!.userToken,
+        'comments': comment,
+        'time': time,
+      });
+    });
+  }
+
+  Future<void> _refreshData() async {
+    // Implement your refresh logic here
+    // For example, you can fetch new data from an API or rebuild the page
+    // You can set isLoading to true, perform the refresh, and then set isLoading to false
+    setState(() {
+      isLoading = true;
+      postList = [];
+
+      profilePicture = {};
+      userTokenMap = {};
+    });
+
+    // Simulate a delay to demonstrate the loading process
+    await setPostList();
+
+    // Refresh your data or page content here
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Future<void> setStoryList() async {
+    User currentUser = await User.getCurrentUser();
+    Map<String, List<Story>> storiesList = {};
+    List<Story> storyTemp = [];
+    for (String story in currentUser.stories) {
+      Story temp = await Story.getStory(story);
+      storyTemp.add(temp);
+    }
+    setState(() {
+      profilePicture[currentUser.userToken!] = currentUser.profileUrl;
+    });
+    storiesList[currentUser.userToken!] = storyTemp;
+    List tokenFollowing = currentUser.following;
+
+    for (String u in tokenFollowing) {
+      User displayUser = await User.get(u);
+      setState(() {
+        profilePicture[displayUser.userToken!] = displayUser.profileUrl;
+      });
+      storyTemp = [];
+      for (String story in displayUser.stories) {
+        Story temp = await Story.getStory(story);
+        storyTemp.add(temp);
+      }
+      storiesList[u] = storyTemp;
+    }
+
+    setState(() {
+      this.storiesList = storiesList;
+    });
+    print(profilePicture);
+  }
+
+  Future<void> setPostList() async {
+    User currentUser = await User.getCurrentUser();
+    List tokenFollowing = currentUser.following;
+    List<Post> postListAll = await Post.getAllPost();
+    for (Post post in postListAll) {
+      if (tokenFollowing.contains(post.userToken)) {
+        User niceUser = await User.get(post.userToken!);
+        String profilePic = niceUser.profileUrl;
+
+        setState(() {
+          this.postList.add(post);
+          if (profilePicture != "") {
+            profilePicture[post.userToken!] = profilePic;
+          }
+        });
+      }
+    }
+    Map usertokenmap = await User.getUsernameMap();
+    setState(() {
+      loggedUser = currentUser;
+      userTokenMap = usertokenmap;
+      isLoading = false;
+      postList.sort((a, b) => b.time!.compareTo(a.time!));
+    });
+  }
+
   Future<void> _updateUsers(String searchText) async {
     List<Map<String, dynamic>> userTemp =
         await SearchQuery().getUsers(searchText);
@@ -63,6 +200,36 @@ class _HomeScreenState extends State<HomeScreen> {
     await user.addPost(post.postUrl!);
   }
 
+  Future _pickImageCameraStory(ImageSource source) async {
+    final pickedImage =
+        await ImagePicker().pickImage(source: ImageSource.camera);
+
+    if (pickedImage != null) {
+      setState(() {
+        _image = FileImage(File(pickedImage.path));
+      });
+    }
+    Story story = Story();
+    await story.addStory(_image!);
+    User user = await User.getCurrentUser();
+    await user.addStory(story.storyUrl!);
+  }
+
+  Future _pickImageGalleryStory(ImageSource source) async {
+    final pickedImage =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (pickedImage != null) {
+      setState(() {
+        _image = FileImage(File(pickedImage.path));
+      });
+    }
+    Story story = Story();
+    await story.addStory(_image!);
+    User user = await User.getCurrentUser();
+    await user.addStory(story.storyUrl!);
+  }
+
   AppColorScheme colorScheme = AppColorScheme.defaultScheme();
   AppFonts fonts = AppFonts.defaultFonts();
   final TextEditingController _confirmPassword = TextEditingController();
@@ -95,7 +262,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontFamily: fonts.headingFont),
                   ),
                   IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => userMessage()));
+                      },
                       icon: Icon(
                         Icons.message,
                         color: colorScheme.chatBubbleOtherUserBackground,
@@ -104,6 +276,351 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refreshData,
+          child: isLoading
+              ? SizedBox(
+                  height: screenHeight * 0.7,
+                  width: screenWidth,
+                  child: Center(child: CircularProgressIndicator()))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(children: [
+                        for (String token in storiesList.keys)
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: ((context) => StoryPage(
+                                          username: userTokenMap![token],
+                                          storyList: storiesList[token]!,
+                                          index: 0))));
+                            },
+                            child: Column(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: CircleAvatar(
+                                      radius: 30.0,
+                                      backgroundColor:
+                                          colorScheme.backgroundColor,
+                                      child: profilePicture[token] == ""
+                                          ? const Icon(Icons.person, size: 30)
+                                          : ClipOval(
+                                              child: Image.network(
+                                              profilePicture[token]!,
+                                              width: 60.0,
+                                              height: 60.0,
+                                              fit: BoxFit.cover,
+                                            ))),
+                                ),
+                                SizedBox(height: 10),
+                                Text(
+                                  userTokenMap![token],
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ]),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: postList.length,
+                        itemBuilder: (context, rowIndex) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: colorScheme.buttonColor,
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: ListTile(
+                                leading: Column(
+                                  children: [
+                                    CircleAvatar(
+                                        radius: 20.0,
+                                        backgroundColor:
+                                            colorScheme.backgroundColor,
+                                        child: profilePicture[postList[rowIndex]
+                                                    .userToken] ==
+                                                ""
+                                            ? const Icon(Icons.person, size: 20)
+                                            : ClipOval(
+                                                child: Image.network(
+                                                profilePicture[
+                                                    postList[rowIndex]
+                                                        .userToken]!,
+                                                width: 40.0,
+                                                height: 40.0,
+                                                fit: BoxFit.cover,
+                                              ))),
+                                    Text(userTokenMap![
+                                        postList[rowIndex].userToken]),
+                                  ],
+                                ),
+                                title: GestureDetector(
+                                  onTap: () {
+                                    showDialog(
+                                        context: context,
+                                        builder: (context) {
+                                          return AlertDialog(
+                                              title: SizedBox(
+                                                  width: screenWidth * 0.9,
+                                                  child: Image.network(
+                                                    postList[rowIndex].postUrl!,
+                                                    width: screenWidth * 0.8,
+                                                  )));
+                                        });
+                                  },
+                                  child: Image.network(
+                                    postList[rowIndex].postUrl!,
+                                    height: 300,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(format(postList[rowIndex].time!)),
+                                    (postList[rowIndex].caption != "")
+                                        ? Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Text(
+                                              postList[rowIndex].caption,
+                                              style: TextStyle(
+                                                  color: colorScheme
+                                                      .primaryColorVariant1,
+                                                  fontFamily: fonts.randomFont,
+                                                  fontSize: 20),
+                                            ),
+                                          )
+                                        : SizedBox(
+                                            height: 0,
+                                            width: 0,
+                                          ),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                IconButton(
+                                                  icon: Icon(
+                                                    Icons.favorite,
+                                                    color: postList[rowIndex]
+                                                            .likes
+                                                            .contains(
+                                                                loggedUser!
+                                                                    .userToken!)
+                                                        ? colorScheme
+                                                            .primaryColorVariant2
+                                                        : Colors.grey,
+                                                  ),
+                                                  onPressed: () async {
+                                                    bool likedCurrent =
+                                                        postList[rowIndex]
+                                                            .likes
+                                                            .contains(
+                                                                loggedUser!
+                                                                    .userToken);
+                                                    await likedCurrent
+                                                        ? Post.unlikePost(
+                                                            postList[rowIndex]
+                                                                .postUrl!,
+                                                            loggedUser!
+                                                                .userToken!)
+                                                        : Post.likePost(
+                                                            postList[rowIndex]
+                                                                .postUrl!,
+                                                            loggedUser!
+                                                                .userToken!);
+                                                    setState(() {
+                                                      likedCurrent
+                                                          ? postList[rowIndex]
+                                                              .likes
+                                                              .remove(loggedUser!
+                                                                  .userToken!)
+                                                          : postList[rowIndex]
+                                                              .likes
+                                                              .add(loggedUser!
+                                                                  .userToken!);
+                                                    });
+                                                  },
+                                                ),
+                                                Text(
+                                                  postList[rowIndex]
+                                                      .likes
+                                                      .length
+                                                      .toString(),
+                                                  style: TextStyle(
+                                                      fontFamily:
+                                                          fonts.bodyFont,
+                                                      fontSize: 20),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (context) {
+                                                return AlertDialog(
+                                                  title: Center(
+                                                    child: Text(
+                                                      "Comments",
+                                                      style: TextStyle(
+                                                        color: colorScheme
+                                                            .accentColor,
+                                                        fontFamily:
+                                                            fonts.headingFont,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  content: StatefulBuilder(
+                                                    builder: (BuildContext
+                                                            context,
+                                                        StateSetter setState) {
+                                                      return Container(
+                                                        width: double.maxFinite,
+                                                        child: Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Expanded(
+                                                              child: ListView
+                                                                  .builder(
+                                                                itemCount: postList[
+                                                                        rowIndex]
+                                                                    .comments
+                                                                    .length,
+                                                                itemBuilder:
+                                                                    (context,
+                                                                        commentIndex) {
+                                                                  final comment =
+                                                                      postList[rowIndex]
+                                                                              .comments[
+                                                                          commentIndex];
+                                                                  Timestamp
+                                                                      time =
+                                                                      comment[
+                                                                          'time'];
+
+                                                                  return ListTile(
+                                                                    title: Text(
+                                                                      comment[
+                                                                          'comments'],
+                                                                      style: TextStyle(
+                                                                          fontFamily: fonts
+                                                                              .primaryFont,
+                                                                          fontSize:
+                                                                              20),
+                                                                    ),
+                                                                    subtitle:
+                                                                        Text(
+                                                                      userTokenMap![comment[
+                                                                              'userToken']] +
+                                                                          "\n" +
+                                                                          format(
+                                                                              time),
+                                                                      style: TextStyle(
+                                                                          fontFamily: fonts
+                                                                              .secondaryFont,
+                                                                          fontSize:
+                                                                              10),
+                                                                    ),
+                                                                  );
+                                                                },
+                                                              ),
+                                                            ),
+                                                            Align(
+                                                              alignment: Alignment
+                                                                  .bottomCenter,
+                                                              child: Row(
+                                                                children: [
+                                                                  Expanded(
+                                                                    child:
+                                                                        TextFormField(
+                                                                      controller:
+                                                                          _commentText,
+                                                                      decoration:
+                                                                          InputDecoration(
+                                                                        hintText:
+                                                                            'Enter Comment to Post',
+                                                                        fillColor:
+                                                                            colorScheme.chatBubbleUserBackground,
+                                                                        filled:
+                                                                            true,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  IconButton(
+                                                                    onPressed:
+                                                                        () async {
+                                                                      await _addCommentToPost(
+                                                                          rowIndex,
+                                                                          _commentText
+                                                                              .text);
+                                                                      setState(
+                                                                          () {
+                                                                        _commentText
+                                                                            .clear();
+                                                                      });
+                                                                    },
+                                                                    icon: Icon(
+                                                                      Icons
+                                                                          .send,
+                                                                      size: 20,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                          child: Text(
+                                            'Comments',
+                                            style: TextStyle(
+                                              color: colorScheme.primaryColor,
+                                              fontFamily: fonts.anotherFont,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
         ),
         bottomNavigationBar: SizedBox(
             width: screenWidth,
@@ -234,7 +751,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         IconButton(
                             onPressed: () {
                               showDialog(
-                                barrierDismissible: false,
                                 context: context,
                                 builder: (context) {
                                   return AlertDialog(
@@ -269,35 +785,137 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         ),
                                                         ElevatedButton(
                                                           onPressed: () async {
-                                                            setState(() {
-                                                              _isLoading = true;
-                                                            });
-                                                            await _pickImageGallery(
-                                                                ImageSource
-                                                                    .gallery);
-                                                            setState(() {
-                                                              _isLoading =
-                                                                  false;
-                                                            });
+                                                            showDialog(
+                                                              barrierDismissible:
+                                                                  false,
+                                                              context: context,
+                                                              builder:
+                                                                  (context) {
+                                                                return AlertDialog(
+                                                                    content: Container(
+                                                                        height: screenHeight * 0.20,
+                                                                        width: screenWidth * 0.8,
+                                                                        child: StatefulBuilder(
+                                                                          builder:
+                                                                              (context, setState) {
+                                                                            return _isLoading
+                                                                                ? Center(child: CircularProgressIndicator())
+                                                                                : Column(
+                                                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                    children: [
+                                                                                      Row(
+                                                                                        mainAxisAlignment: MainAxisAlignment.start,
+                                                                                        children: [
+                                                                                          IconButton(
+                                                                                            icon: Icon(Icons.arrow_back),
+                                                                                            onPressed: () {
+                                                                                              Navigator.pop(context);
+                                                                                            },
+                                                                                          ),
+                                                                                        ],
+                                                                                      ),
+                                                                                      ElevatedButton(
+                                                                                        onPressed: () async {
+                                                                                          setState(() {
+                                                                                            _isLoading = true;
+                                                                                          });
+                                                                                          await _pickImageGallery(ImageSource.gallery);
+                                                                                          setState(() {
+                                                                                            _isLoading = false;
+                                                                                            Navigator.pop(context);
+                                                                                          });
+                                                                                        },
+                                                                                        child: const Text('Pick Photo from Gallery'),
+                                                                                      ),
+                                                                                      ElevatedButton(
+                                                                                        onPressed: () async {
+                                                                                          setState(() {
+                                                                                            _isLoading = true;
+                                                                                          });
+                                                                                          await _pickImageCamera(ImageSource.gallery);
+                                                                                          setState(() {
+                                                                                            _isLoading = false;
+                                                                                            Navigator.pop(context);
+                                                                                          });
+                                                                                        },
+                                                                                        child: const Text('Pick Photo from Camera'),
+                                                                                      ),
+                                                                                    ],
+                                                                                  );
+                                                                          },
+                                                                        )));
+                                                              },
+                                                            );
                                                           },
                                                           child: const Text(
-                                                              'Pick Photo from Gallery'),
+                                                              'Add Post'),
                                                         ),
                                                         ElevatedButton(
                                                           onPressed: () async {
-                                                            setState(() {
-                                                              _isLoading = true;
-                                                            });
-                                                            await _pickImageCamera(
-                                                                ImageSource
-                                                                    .gallery);
-                                                            setState(() {
-                                                              _isLoading =
-                                                                  false;
-                                                            });
+                                                            showDialog(
+                                                              barrierDismissible:
+                                                                  false,
+                                                              context: context,
+                                                              builder:
+                                                                  (context) {
+                                                                return AlertDialog(
+                                                                    content: Container(
+                                                                        height: screenHeight * 0.20,
+                                                                        width: screenWidth * 0.8,
+                                                                        child: StatefulBuilder(
+                                                                          builder:
+                                                                              (context, setState) {
+                                                                            return _isLoading
+                                                                                ? Center(child: CircularProgressIndicator())
+                                                                                : Column(
+                                                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                    children: [
+                                                                                      Row(
+                                                                                        mainAxisAlignment: MainAxisAlignment.start,
+                                                                                        children: [
+                                                                                          IconButton(
+                                                                                            icon: Icon(Icons.arrow_back),
+                                                                                            onPressed: () {
+                                                                                              Navigator.pop(context);
+                                                                                            },
+                                                                                          ),
+                                                                                        ],
+                                                                                      ),
+                                                                                      ElevatedButton(
+                                                                                        onPressed: () async {
+                                                                                          setState(() {
+                                                                                            _isLoading = true;
+                                                                                          });
+                                                                                          await _pickImageGalleryStory(ImageSource.gallery);
+                                                                                          setState(() {
+                                                                                            _isLoading = false;
+                                                                                            Navigator.pop(context);
+                                                                                          });
+                                                                                        },
+                                                                                        child: const Text('Pick Photo from Gallery'),
+                                                                                      ),
+                                                                                      ElevatedButton(
+                                                                                        onPressed: () async {
+                                                                                          setState(() {
+                                                                                            _isLoading = true;
+                                                                                          });
+                                                                                          await _pickImageCameraStory(ImageSource.gallery);
+                                                                                          setState(() {
+                                                                                            _isLoading = false;
+                                                                                            Navigator.pop(context);
+                                                                                          });
+                                                                                        },
+                                                                                        child: const Text('Pick Photo from Camera'),
+                                                                                      ),
+                                                                                    ],
+                                                                                  );
+                                                                          },
+                                                                        )));
+                                                              },
+                                                            );
                                                           },
                                                           child: const Text(
-                                                              'Pick Photo from Camera'),
+                                                              'Add Story'),
                                                         ),
                                                       ],
                                                     );
@@ -345,9 +963,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   decoration: InputDecoration(
                                                       errorText: passwordsMatch
                                                           ? null
-                                                          : 'Password Do Not Match',
+                                                          : 'Text Do Not Match',
                                                       hintText:
-                                                          'Confirm Password',
+                                                          'Type "Confirm" (Case Insensitive)',
                                                       hintStyle: TextStyle(
                                                           color: colorScheme
                                                               .primaryColor,
@@ -359,21 +977,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                                       16.0),
                                                   child: ElevatedButton(
                                                       onPressed: () async {
-                                                        User user = User(
-                                                            "",
-                                                            _confirmPassword
-                                                                .text,
-                                                            "",
-                                                            "",
-                                                            null,
-                                                            "");
-                                                        User currentUser =
-                                                            await User
-                                                                .getCurrentUser();
-
-                                                        if (currentUser
-                                                                .password ==
-                                                            user.password) {
+                                                        if (_confirmPassword
+                                                                .text
+                                                                .toLowerCase() ==
+                                                            "Confirm"
+                                                                .toLowerCase()) {
                                                           passwordsMatch = true;
                                                           await User.logout();
                                                           Navigator.pop(

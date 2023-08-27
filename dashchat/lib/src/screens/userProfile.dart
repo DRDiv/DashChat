@@ -20,6 +20,7 @@ class _userProfileState extends State<userProfile> {
   AppColorScheme colorScheme = AppColorScheme.defaultScheme();
   AppFonts fonts = AppFonts.defaultFonts();
   TextEditingController _commentText = TextEditingController();
+  List<TextEditingController>? _caption;
   bool? following;
   User? user;
   User? loggedUser;
@@ -79,6 +80,16 @@ class _userProfileState extends State<userProfile> {
     }
     setState(() {
       postLoading = false;
+      _caption = List.generate(
+          postsUrlList.length, (index) => TextEditingController());
+    });
+  }
+
+  Future<void> _captionChange(int postIndex, String caption) async {
+    Post post = await Post.getPost(postsUrlList[postIndex].postUrl!);
+    await post.updateCaption(caption);
+    setState(() {
+      postsUrlList[postIndex].caption = caption;
     });
   }
 
@@ -115,36 +126,51 @@ class _userProfileState extends State<userProfile> {
     double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      appBar: AppBar(backgroundColor: (colorScheme.accentColor), actions: [
-        SizedBox(
-            width: screenWidth * 0.7,
-            child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text('DashChat',
-                      style: TextStyle(
-                          fontSize: 30,
-                          color: (colorScheme.textColorLight),
-                          fontFamily: fonts.headingFont)),
-                  !isLoading &&
-                          following! &&
-                          (loggedUser!.userToken != user!.userToken)
-                      ? IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => messageScreen(
-                                        loggedUser: loggedUser!,
-                                        displayUser: user!)));
-                          },
-                          icon: Icon(
-                            Icons.send_sharp,
-                            color: colorScheme.chatBubbleOtherUserBackground,
-                          ))
-                      : SizedBox(),
-                ]))
-      ]),
+      appBar: AppBar(
+        backgroundColor: colorScheme.accentColor,
+        automaticallyImplyLeading: false, // Disable the default back arrow
+        centerTitle: true,
+        title: Text(
+          'DashChat',
+          style: TextStyle(
+            fontSize: 30,
+            color: colorScheme.textColorLight,
+            fontFamily: fonts.headingFont,
+          ),
+        ),
+
+        leading: GestureDetector(
+          onTap: () {
+            Navigator.pop(context); // Implement your back navigation logic here
+          },
+          child: Icon(
+            Icons.arrow_back_ios_sharp,
+            color: Colors.white, // Customize the color as needed
+          ),
+        ),
+        actions: [
+          if (!isLoading &&
+              following! &&
+              loggedUser!.userToken != user!.userToken)
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => messageScreen(
+                      loggedUser: loggedUser!,
+                      displayUser: user!,
+                    ),
+                  ),
+                );
+              },
+              icon: Icon(
+                Icons.send_sharp,
+                color: colorScheme.chatBubbleOtherUserBackground,
+              ),
+            ),
+        ],
+      ),
       body: isLoading
           ? Center(
               child: CircularProgressIndicator(),
@@ -330,6 +356,63 @@ class _userProfileState extends State<userProfile> {
                                                             MainAxisAlignment
                                                                 .spaceBetween,
                                                         children: [
+                                                          (loggedUser!.userToken ==
+                                                                  user!
+                                                                      .userToken)
+                                                              ? TextFormField(
+                                                                  controller: _caption![
+                                                                      startIndex +
+                                                                          index],
+                                                                  decoration: InputDecoration(
+                                                                      hintText: postsUrlList[startIndex + index].caption == ""
+                                                                          ? 'Touch to Change Caption'
+                                                                          : postsUrlList[startIndex + index]
+                                                                              .caption,
+                                                                      hintMaxLines:
+                                                                          100,
+                                                                      hintStyle: TextStyle(
+                                                                          color: colorScheme
+                                                                              .primaryColor,
+                                                                          fontFamily: fonts
+                                                                              .accentFont,
+                                                                          fontSize:
+                                                                              10,
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis)),
+                                                                  onChanged:
+                                                                      (string) async {
+                                                                    await _captionChange(
+                                                                        startIndex +
+                                                                            index,
+                                                                        _caption![startIndex +
+                                                                                index]
+                                                                            .text);
+                                                                  },
+                                                                )
+                                                              : (postsUrlList[startIndex +
+                                                                              index]
+                                                                          .caption !=
+                                                                      "")
+                                                                  ? Padding(
+                                                                      padding: const EdgeInsets
+                                                                          .all(
+                                                                          8.0),
+                                                                      child:
+                                                                          Text(
+                                                                        postsUrlList[startIndex +
+                                                                                index]
+                                                                            .caption,
+                                                                        style: TextStyle(
+                                                                            color:
+                                                                                colorScheme.primaryColorVariant1,
+                                                                            fontFamily: fonts.randomFont,
+                                                                            fontSize: 20),
+                                                                      ),
+                                                                    )
+                                                                  : SizedBox(
+                                                                      height: 0,
+                                                                      width: 0,
+                                                                    ),
                                                           Row(
                                                             mainAxisAlignment:
                                                                 MainAxisAlignment

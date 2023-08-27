@@ -30,7 +30,7 @@ class Message {
     messageCollection.add(docReturn());
   }
 
-  static Future<Message> getMessage(String userToken, String findToken) async {
+  static Future<Message> getMessages(String userToken) async {
     final CollectionReference messageCollection =
         FirebaseFirestore.instance.collection('messages');
     Query messageQuery =

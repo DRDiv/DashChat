@@ -90,8 +90,8 @@ class _messageScreenState extends State<messageScreen> {
   }
 
   Future<void> _getMessages() async {
-    Message messageObj = await Message.getMessage(
-        widget.loggedUser.userToken!, widget.displayUser.userToken!);
+    Message messageObj =
+        await Message.getMessages(widget.loggedUser.userToken!);
     setState(() {
       this.messages = messageObj.messages[widget.displayUser.userToken];
     });
@@ -105,8 +105,9 @@ class _messageScreenState extends State<messageScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: colorScheme.accentColor,
+        automaticallyImplyLeading: false, // Disable the default back arrow
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Text(
               'DashChat',
@@ -116,7 +117,17 @@ class _messageScreenState extends State<messageScreen> {
                 fontFamily: fonts.headingFont,
               ),
             ),
+            Container()
           ],
+        ),
+        leading: GestureDetector(
+          onTap: () {
+            Navigator.pop(context); // Implement your back navigation logic here
+          },
+          child: Icon(
+            Icons.arrow_back_ios_new_sharp,
+            color: Colors.white, // Customize the color as needed
+          ),
         ),
       ),
       body: Column(

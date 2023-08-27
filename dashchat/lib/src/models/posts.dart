@@ -11,6 +11,7 @@ class Post {
 
   String? postUrl;
   Timestamp? time;
+  String caption = "";
   List comments = [];
   List likes = [];
   Map<String, dynamic> docReturn() {
@@ -20,12 +21,14 @@ class Post {
       'time': DateTime.now(),
       'comments': comments,
       'likes': likes,
+      'caption': caption,
     };
     return doc;
   }
 
   Post() {}
-  Post.set(this.userToken, this.postUrl, this.time, this.comments, this.likes);
+  Post.set(this.userToken, this.postUrl, this.time, this.comments, this.likes,
+      this.caption);
   Future<void> addPost(FileImage _postImage) async {
     User current = await User.getCurrentUser();
     userToken = current.userToken;
@@ -42,6 +45,24 @@ class Post {
     postCollection.add(docReturn());
   }
 
+  static Future<List<Post>> getAllPost() async {
+    final CollectionReference usersCollection =
+        FirebaseFirestore.instance.collection('posts');
+    QuerySnapshot querySnapshot = await usersCollection.get();
+    List<Post> postList = [];
+    for (QueryDocumentSnapshot queryDocumentSnapshot in querySnapshot.docs) {
+      Post postTemp = Post.set(
+          queryDocumentSnapshot['userToken'],
+          queryDocumentSnapshot['postUrl'],
+          queryDocumentSnapshot['time'],
+          queryDocumentSnapshot['comments'],
+          queryDocumentSnapshot['likes'],
+          queryDocumentSnapshot['caption']);
+      postList.add(postTemp);
+    }
+    return postList;
+  }
+
   static Future<Post> getPost(String postUrl) async {
     final CollectionReference usersCollection =
         FirebaseFirestore.instance.collection('posts');
@@ -53,7 +74,8 @@ class Post {
         querySnapshot.docs[0]['postUrl'],
         querySnapshot.docs[0]['time'],
         querySnapshot.docs[0]['comments'],
-        querySnapshot.docs[0]['likes']);
+        querySnapshot.docs[0]['likes'],
+        querySnapshot.docs[0]['caption']);
     return post;
   }
 
@@ -117,6 +139,23 @@ class Post {
         FirebaseFirestore.instance.collection('posts').doc(postDocId);
     await postDocRef.update({
       'likes': likes,
+    });
+  }
+
+  Future<void> updateCaption(String caption) async {
+    QuerySnapshot<Map<String, dynamic>> postList = await FirebaseFirestore
+        .instance
+        .collection('posts')
+        .where('postUrl', isEqualTo: postUrl)
+        .get();
+
+    DocumentSnapshot postDocSnapshot = postList.docs.first;
+    String postDocId = postDocSnapshot.id;
+    this.caption = caption;
+    DocumentReference postDocRef =
+        FirebaseFirestore.instance.collection('posts').doc(postDocId);
+    await postDocRef.update({
+      'caption': caption,
     });
   }
 }

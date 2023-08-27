@@ -25,6 +25,7 @@ class User {
   List followers = [];
   List following = [];
   List posts = [];
+  List stories = [];
   Map<String, dynamic> docReturn() {
     Map<String, dynamic> docs = {
       'userToken': userToken,
@@ -37,6 +38,7 @@ class User {
       'followers': followers,
       'following': following,
       'posts': posts,
+      'stories': stories,
     };
     return docs;
   }
@@ -56,7 +58,8 @@ class User {
       this.caption,
       this.followers,
       this.following,
-      this.posts);
+      this.posts,
+      this.stories);
   Future<void> Register() async {
     if (_profile != null) {
       File profileFile = _profile!.file;
@@ -99,6 +102,7 @@ class User {
       querySnapshot.docs[0]['followers'],
       querySnapshot.docs[0]['following'],
       querySnapshot.docs[0]['posts'],
+      querySnapshot.docs[0]['stories'],
     );
     return user;
   }
@@ -123,6 +127,7 @@ class User {
       querySnapshot.docs[0]['followers'],
       querySnapshot.docs[0]['following'],
       querySnapshot.docs[0]['posts'],
+      querySnapshot.docs[0]['stories'],
     );
     return user;
   }
@@ -171,6 +176,7 @@ class User {
       querySnapshot.docs[0]['followers'],
       querySnapshot.docs[0]['following'],
       querySnapshot.docs[0]['posts'],
+      querySnapshot.docs[0]['stories'],
     );
     return user.userName;
   }
@@ -313,6 +319,25 @@ class User {
         FirebaseFirestore.instance.collection('users').doc(userDocId);
     await userDocRef.update({
       'posts': posts,
+    });
+  }
+
+  Future<void> addStory(String storyUrl) async {
+    QuerySnapshot<Map<String, dynamic>> userList = await FirebaseFirestore
+        .instance
+        .collection('users')
+        .where('userToken', isEqualTo: userToken)
+        .get();
+
+    DocumentSnapshot userDocSnapshot = userList.docs.first;
+    String userDocId = userDocSnapshot.id;
+
+    stories.add(storyUrl);
+
+    DocumentReference userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(userDocId);
+    await userDocRef.update({
+      'stories': stories,
     });
   }
 
