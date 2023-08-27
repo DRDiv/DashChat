@@ -86,13 +86,13 @@ class _HomeScreenState extends State<HomeScreen> {
       isLoading = true;
       postList = [];
 
-      profilePicture = {};
       userTokenMap = {};
+      storiesList = {};
     });
 
     // Simulate a delay to demonstrate the loading process
     await setPostList();
-
+    await setStoryList();
     // Refresh your data or page content here
 
     setState(() {
