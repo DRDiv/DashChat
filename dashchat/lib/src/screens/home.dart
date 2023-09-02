@@ -151,16 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
     List<MapEntry<String, List<Story>>> sortedMap =
         sortedStories.entries.toList();
     sortedMap.sort((a, b) {
-      // Compare storiesViewed (true first)
       bool viewedA = storiesViewed[a.key]!;
       bool viewedB = storiesViewed[b.key]!;
 
       if (viewedA && !viewedB) {
-        return -1; // `a` comes before `b`
+        return -1;
       } else if (!viewedA && viewedB) {
-        return 1; // `b` comes before `a`
+        return 1;
       } else {
-        // Both have the same viewed status, compare storiesTimestamp
         DateTime timestampA = storiesTimestamp[a.key]!.toDate();
         DateTime timestampB = storiesTimestamp[b.key]!.toDate();
 
@@ -168,15 +166,11 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-// Create a new map with the sorted keys
-
     sortedStories = {
       firstKey: storiesList[firstKey]!,
       ...Map.fromEntries(sortedMap)
     };
-    print(storiesList);
-    print(sortedMap);
-    print(storiesViewed);
+
     setState(() {
       this.storiesList = sortedStories;
       this.storiesTimestamp = storiesTimestamp;
@@ -351,7 +345,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                             userToken: loggedUser!.userToken!,
                                             currentToken: token,
                                             storyList: storiesList[token]!,
-                                            index: 0))));
+                                            index: 0)))).then((_) {
+                                  _refreshData();
+                                });
+                                ;
                               }
                             },
                             child: Column(
@@ -363,12 +360,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 token) &&
                                             storiesViewed[token]!
                                         ? BoxDecoration(
-                                            color: Colors.white, // Border color
+                                            color: Colors.white,
                                             shape: BoxShape.circle,
                                             border: Border.all(
-                                              color:
-                                                  Colors.pink, // Border color
-                                              width: 2, // Border width
+                                              color: Colors.pink,
+                                              width: 2,
                                             ))
                                         : BoxDecoration(color: Colors.white),
                                     child: Padding(
