@@ -26,6 +26,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> _users = List.empty();
   Map<String, List<Story>> storiesList = {};
+  Map<String, bool> storiesViewed = {};
+  Map<String, Timestamp> storiesTimestamp = {};
   User? loggedUser;
   String _searchText = '';
   List<Post> postList = [];
@@ -103,6 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _setStoryList() async {
     User currentUser = await User.getCurrentUser();
     Map<String, List<Story>> storiesList = {};
+    Map<String, bool> storiesViewed = {};
+    Map<String, Timestamp> storiesTimestamp = {};
     List<Story> storyTemp = [];
     for (String story in currentUser.stories) {
       Story temp = await Story.getStory(story);
@@ -122,13 +126,61 @@ class _HomeScreenState extends State<HomeScreen> {
       storyTemp = [];
       for (String story in displayUser.stories) {
         Story temp = await Story.getStory(story);
+        if (storiesViewed[temp.userToken!] == null) {
+          storiesViewed[temp.userToken!] =
+              !temp.views.contains(currentUser.userToken!);
+        } else {
+          storiesViewed[temp.userToken!] = storiesViewed[temp.userToken!]! |
+              !temp.views.contains(currentUser.userToken!);
+        }
+        storiesTimestamp[displayUser.userToken!] = temp.time!;
+
         storyTemp.add(temp);
       }
+      if (storiesViewed[displayUser.userToken!] == null) {
+        storiesViewed[displayUser.userToken!] = false;
+      }
+      storiesTimestamp[displayUser.userToken!] = Timestamp.now();
       storiesList[u] = storyTemp;
     }
 
+    Map<String, List<Story>> sortedStories = Map.from(storiesList);
+    String? firstKey = sortedStories.keys.first;
+
+    sortedStories.remove(firstKey);
+    List<MapEntry<String, List<Story>>> sortedMap =
+        sortedStories.entries.toList();
+    sortedMap.sort((a, b) {
+      // Compare storiesViewed (true first)
+      bool viewedA = storiesViewed[a.key]!;
+      bool viewedB = storiesViewed[b.key]!;
+
+      if (viewedA && !viewedB) {
+        return -1; // `a` comes before `b`
+      } else if (!viewedA && viewedB) {
+        return 1; // `b` comes before `a`
+      } else {
+        // Both have the same viewed status, compare storiesTimestamp
+        DateTime timestampA = storiesTimestamp[a.key]!.toDate();
+        DateTime timestampB = storiesTimestamp[b.key]!.toDate();
+
+        return timestampA.compareTo(timestampB);
+      }
+    });
+
+// Create a new map with the sorted keys
+
+    sortedStories = {
+      firstKey: storiesList[firstKey]!,
+      ...Map.fromEntries(sortedMap)
+    };
+    print(storiesList);
+    print(sortedMap);
+    print(storiesViewed);
     setState(() {
-      this.storiesList = storiesList;
+      this.storiesList = sortedStories;
+      this.storiesTimestamp = storiesTimestamp;
+      this.storiesViewed = storiesViewed;
     });
   }
 
@@ -296,7 +348,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     context,
                                     MaterialPageRoute(
                                         builder: ((context) => StoryPage(
-                                            username: userTokenMap![token],
+                                            userToken: loggedUser!.userToken!,
+                                            currentToken: token,
                                             storyList: storiesList[token]!,
                                             index: 0))));
                               }
@@ -304,20 +357,38 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               children: [
                                 Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: CircleAvatar(
-                                      radius: 30.0,
-                                      backgroundColor:
-                                          colorScheme.backgroundColor,
-                                      child: profilePicture[token] == ""
-                                          ? const Icon(Icons.person, size: 30)
-                                          : ClipOval(
-                                              child: Image.network(
-                                              profilePicture[token]!,
-                                              width: 60.0,
-                                              height: 60.0,
-                                              fit: BoxFit.cover,
-                                            ))),
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Container(
+                                    decoration: (loggedUser!.userToken! !=
+                                                token) &&
+                                            storiesViewed[token]!
+                                        ? BoxDecoration(
+                                            color: Colors.white, // Border color
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color:
+                                                  Colors.pink, // Border color
+                                              width: 2, // Border width
+                                            ))
+                                        : BoxDecoration(color: Colors.white),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(1.0),
+                                      child: CircleAvatar(
+                                          radius: 30.0,
+                                          backgroundColor:
+                                              colorScheme.backgroundColor,
+                                          child: profilePicture[token] == ""
+                                              ? const Icon(Icons.person,
+                                                  size: 30)
+                                              : ClipOval(
+                                                  child: Image.network(
+                                                  profilePicture[token]!,
+                                                  width: 60.0,
+                                                  height: 60.0,
+                                                  fit: BoxFit.cover,
+                                                ))),
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
@@ -583,7 +654,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                             .clear();
                                                                       });
                                                                     },
-                                                                    icon: const Icon(
+                                                                    icon:
+                                                                        const Icon(
                                                                       Icons
                                                                           .send,
                                                                       size: 20,
@@ -672,9 +744,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 if (snapshot.connectionState ==
                                                     ConnectionState.waiting) {
                                                   return const Padding(
-                                                    padding:
-                                                        EdgeInsets.only(
-                                                            top: 25),
+                                                    padding: EdgeInsets.only(
+                                                        top: 25),
                                                     child:
                                                         CircularProgressIndicator(),
                                                   );
@@ -774,8 +845,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                   .start,
                                                           children: [
                                                             IconButton(
-                                                              icon: const Icon(Icons
-                                                                  .arrow_back),
+                                                              icon: const Icon(
+                                                                  Icons
+                                                                      .arrow_back),
                                                               onPressed: () {
                                                                 Navigator.pop(
                                                                     context);
@@ -958,7 +1030,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                               child: Column(children: [
                                                 TextFormField(
                                                   controller: _confirmPassword,
-                                                  obscureText: true,
                                                   maxLines: 1,
                                                   decoration: InputDecoration(
                                                       errorText: passwordsMatch
